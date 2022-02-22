@@ -1,14 +1,21 @@
 {-# LANGUAGE LambdaCase #-}
+
 import Data.List (transpose)
+
 -- m,n,k-game
 -- A generalised version of tic-tac-toe (which is a 3,3,3-game).
 -- m*n board, k in a row
+
+{-
+General patterns: Data types, board, functions for changing/initiating board,
+function for determining victory, function for displaying game state
+-}
 
 data Tile = Empty | X | O deriving (Show, Eq)
 type Board = [[Tile]]
 
 main :: IO ()
-main = initGame 3 3 3 >>= \case 
+main = initGame 10 6 2 >>= \case 
         (-1) -> putStrLn "Tie!"
         0    -> putStrLn "Player 1 wins!"
         1    -> putStrLn "Player 2 wins!"
@@ -22,17 +29,39 @@ initGame m n k = do
     where
         initGame' :: Board -> Int -> Int -> IO Int
         initGame' b k player = do
-            move <- makeTurn b player
-            if checkWinner move k then return player else 
-                if checkTie move then return (-1) else
-                initGame' move k $ (player + 1) `mod` 2
+            prettyPrint b
+            newBoard <- makeTurn b player
+            if checkWinner newBoard k then prettyPrint newBoard >> return player else 
+                if checkTie newBoard then prettyPrint newBoard >> return (-1) else
+                initGame' newBoard k $ (player + 1) `mod` 2
 
 makeTurn :: Board -> Int -> IO Board 
-makeTurn board player = undefined 
+makeTurn board player = do
+    putStrLn "Enter desired position (format: x,y)"
+    pos <- getLine
+    let (x,y) = mapTup read $ splitOn ',' pos
+    if x > length (head board) - 1 || y > length board - 1 then do
+        putStrLn "Position does not exist"
+        makeTurn board player
+    else if (board !! y) !! x /= Empty then do
+        putStrLn " Position is taken"
+        makeTurn board player
+    else do
+        putStrLn "test"
+        let p = if player == 0 then X else O
+
+        return [[if x == x' && y == y' then p else t 
+                | x' <- [0..(length . head) board - 1],  let t = (board !! y') !! x']
+                | y' <- [0..length board - 1]]
+
+
+mapTup :: (a -> b) -> (a, a) -> (b, b)
+mapTup f (a,b) = (f a, f b)
 
 checkWinner :: Board -> Int -> Bool
-checkWinner = undefined  
-    -- where
+checkWinner b k = do
+    let everything = getRows b k ++ getColumns b k ++ getDiagonals b k
+    any (\a -> allEQ a && Empty `notElem` a) everything
 
 getRows :: Board -> Int -> [[Tile]]
 getRows b len = concat [[take len (drop n r) | n <- [0..(length r - len)]] | r <- b]
@@ -40,16 +69,19 @@ getRows b len = concat [[take len (drop n r) | n <- [0..(length r - len)]] | r <
 getColumns :: Board -> Int -> [[Tile]]
 getColumns b = getRows (transpose b)  
 
-getDiagonals1 :: Board -> Int -> [[Tile]]
-getDiagonals1 b len = getRows [
-    [(b !! r) !! c | k <- [0..(length.head) b - len], let c = r + k] 
-    | r <- [0..length b - len]] len
-
-getDiagonals2 :: Board -> Int -> [[Tile]]
-getDiagonals2 b = getDiagonals1 (transpose b) 
+getDiagonals :: Board -> Int -> [[Tile]]
+getDiagonals b k = getDiagonals' b k ++ getDiagonals' (map reverse b) k
+    where
+        getDiagonals' b k = concat [[[(b !! (y + k')) !! (x + k') | k' <- [0..k-1]]
+                            | x <- [0..length (head b) - k]]
+                            | y <- [0..length b - k]] 
 
 checkTie :: Board -> Bool
 checkTie = all (notElem Empty)
+
+allEQ :: Eq a => [a] -> Bool
+allEQ (a:as) = all (== a) as
+allEQ _      = True
 
 
 -------------------
@@ -72,29 +104,5 @@ prettyPrint b = do
             putStrLn $ replicate (1 + 4 * length b) '-'
             prettyPrint' bs
                 
-
-------------------------------------------
-
-testBoard :: Board
-testBoard = replicate 10 $ replicate 10 Empty
-
-testBoard2 :: Board
-testBoard2 = [[Empty, X, O, O], [X, X, O, X], [Empty, Empty, O, X]]
-
-testBoard3 :: Board
-testBoard3 = [[X, X, X], [O, X, O], [X, O, O]]
-
-testBoard4 :: Board
-testBoard4 = [[X, O], [Empty, Empty], [O,X], [X,X]]
-
-test :: [[Tile]]
-test = getRows testBoard2 3
-
-test2 :: Bool
-test2 = checkTie testBoard3
-
-test3 :: [[Tile]]
-test3 = getColumns testBoard2 2
-
-test4 :: [[Tile]]
-test4 = getDiagonals2 testBoard2 2
+splitOn :: Char -> String -> (String,String)
+splitOn c str = (takeWhile (/=c) str, tail $ dropWhile (/=c) str)
