@@ -33,6 +33,7 @@ library
   build-depends:
       MonadRandom
     , base >=4.7 && <5
+    , split
   default-language: Haskell2010
 
 executable DSL-exe
@@ -46,6 +47,7 @@ executable DSL-exe
       DSL
     , MonadRandom
     , base >=4.7 && <5
+    , split
   default-language: Haskell2010
 
 test-suite DSL-test
@@ -60,4 +62,5 @@ test-suite DSL-test
       DSL
     , MonadRandom
     , base >=4.7 && <5
+    , split
   default-language: Haskell2010
