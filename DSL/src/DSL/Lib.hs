@@ -89,7 +89,7 @@ empty' :: Tile -> Bool
 empty' (Empty _) = True
 empty'  _         = False
 
--- | Checks if a `Piece` is the same as another `Piece on a `Tile`
+-- | Checks if a `Piece` is the same as another `Piece` on a `Tile`
 samePiece :: Piece -> Tile -> Bool
 samePiece _ (Empty _) = False
 samePiece p (PieceTile p2 _) = p == p2

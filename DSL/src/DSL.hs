@@ -1,7 +1,6 @@
 {-# LANGUAGE GADTs #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use newtype instead of data" #-}
-{-# LANGUAGE BlockArguments #-}
 {-|
 Module      : DSL
 Description : A Haskell module containing the majority of the code in this library

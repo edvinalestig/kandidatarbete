@@ -15,6 +15,8 @@ module DSL.Types (
     Die (..)
 ) where
 
+import Test.QuickCheck
+
 -- | The main game object where all game info is contained. 
 data Game = Game
     {
@@ -64,9 +66,46 @@ newtype Die = Die Int
 
 instance Show Player where
     show (Player p) = p
+
 instance Show Tile where
     show (PieceTile p _) = show p
     show (Empty _) = " "
 
 instance Show Piece where
     show (Piece s _) = s
+
+
+-- * Testing
+
+instance Arbitrary Pos where
+    arbitrary = Pos <$> (arbitrary :: Gen Int) <*> (arbitrary :: Gen Int)
+instance Arbitrary Player where
+    arbitrary = Player <$> printableStringGen
+
+-- | A Generator for printable strings
+printableStringGen :: Gen String 
+printableStringGen = getASCIIString <$> (arbitrary :: Gen ASCIIString)
+-- printableString = arbitraryASCIIChar   use if Char
+
+instance Arbitrary Piece where
+    arbitrary = Piece <$> printableStringGen <*> (arbitrary :: Gen Player)
+
+instance Arbitrary Tile where
+    arbitrary = frequency [
+        (7, PieceTile <$> arbitrary <*> arbitrary),
+        (3, Empty <$> arbitrary)
+        ]
+
+-- instance Arbitrary Board where
+--     arbitrary = vectorOf 10 $ vectorOf 10 (arbitrary :: Gen Tile)
+
+{- rectBoard :: Int -> Int -> Board
+rectBoard w h = [[Empty (Pos x y) | x <- [0..w-1]] | y <- [0..h-1]] -}
+
+
+
+{- nonNegative :: Gen Integer
+nonNegative = do n <- arbitrary
+                 return (abs n) -}
+
+

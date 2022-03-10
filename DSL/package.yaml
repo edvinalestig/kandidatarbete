@@ -24,6 +24,7 @@ dependencies:
 - MonadRandom
 - split
 - QuickCheck
+- hspec
 
 library:
   source-dirs: src
