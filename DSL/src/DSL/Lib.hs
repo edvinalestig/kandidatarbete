@@ -13,7 +13,10 @@ module DSL.Lib (
     tileIsEmpty,
     tileBelowIsNotEmpty,
     boardIsFull,
-    inARow
+    inARow,
+    getDiagonals,
+    getRows,
+    getColumns
 ) where
 
 import DSL.Types
@@ -87,7 +90,7 @@ allEQ _      = True
 -- | Checks if a tile is empty
 empty' :: Tile -> Bool
 empty' (Empty _) = True
-empty'  _         = False
+empty'  _        = False
 
 -- | Checks if a `Piece` is the same as another `Piece` on a `Tile`
 samePiece :: Piece -> Tile -> Bool
