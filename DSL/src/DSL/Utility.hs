@@ -12,7 +12,7 @@ import DSL.Types
 
 -- | Returns a `Tile` given a position and a board
 getTile :: Board -> Pos -> Tile
-getTile b (Pos x y) = (b !! x) !! y
+getTile b (Pos x y) = (b !! y) !! x
 
 -- | Filters out `Nothing` from a list of `Maybe`
 filterNothing :: [Maybe a] -> [a]

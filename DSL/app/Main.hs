@@ -28,7 +28,30 @@ tictactoe = emptyGame {
     }
 }
 
-connectFour :: Game -- WIP, doesn't work right now
+
+tictactoeVariant :: Int -> Int -> Int -> Game
+tictactoeVariant x y z = emptyGame {
+    board = rectBoard x y,
+    pieces = [
+        Piece "X" (Player "A"),
+        Piece "O" (Player "B"),
+        Piece "Z" (Player "C")
+    ],
+    players = [
+        Player "A",
+        Player "B",
+        Player "C"
+    ],
+    rules = [
+        PlaceRule tileIsEmpty
+    ],
+    endConditions = EndCondition {
+        drawCondition = [boardIsFull],
+        winCondition = [inARow z]
+    }
+}
+
+connectFour :: Game
 connectFour = emptyGame {
     board = rectBoard 7 6,
     pieces = [

@@ -64,9 +64,9 @@ getValidInput r b = do
         getValidInput r b
     else do
         let [x, y] = xs
-            valid = all (\(PlaceRule f) -> f (Pos x y) b) r
+            valid = all (\(PlaceRule f) -> f (Pos (x-1) (y-1)) b) r
 
-        if valid then return (Pos x y) else getValidInput r b
+        if valid then return (Pos (x-1) (y-1)) else getValidInput r b
         -- case readMaybe (show (x,y)) :: Maybe (Int, Int) of
         --     Just a 
 
@@ -95,11 +95,11 @@ filterPieces player ((Piece s p):ps) =
 
 -- | Places a piece in a certain position on the board
 placePiece :: Piece -> Pos -> Board -> Board
-placePiece p (Pos x y) b = replaceAtIndex x newRow b
+placePiece p (Pos x y) b = replaceAtIndex y newRow b
     where tile = PieceTile p (Pos x y)
-          newRow = replaceAtIndex y tile (b !! x)
+          newRow = replaceAtIndex x tile (b !! y)
 
--- |Current player is put last in the player list
+-- | Current player is put last in the player list
 cyclePlayers :: [Player] -> [Player]
 cyclePlayers ps = tail ps ++ [head ps]
 
@@ -113,8 +113,8 @@ throwDie (Die n) = evalRandIO $ getRandomR (1,n)
 -- | Prints a board in the terminal. It's pretty.
 prettyPrint :: Board -> IO ()
 prettyPrint b = do
-    putStrLn $ replicate (1 + 4 * length b) '-'
-    prettyPrint' $ map (map f) (transpose b)
+    putStrLn $ replicate (1 + 4 * length (head b)) '-'
+    prettyPrint' $ map (map f) b
 
     where
         f :: Tile -> String
