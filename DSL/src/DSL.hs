@@ -40,18 +40,14 @@ play g = do
 
             piece <- getValidPiece currPlayer (pieces game)
             let newBoard = placePiece piece input (board game)
-                winCon = or $ winCondition (endConditions game) <*> [newBoard]
-                drawCon = or $ drawCondition (endConditions game) <*> [newBoard]
-            
-            -- Check win or draw
-            if winCon then do
+                endCon = filter ((== True) . snd) [(p, f newBoard) | (p,f) <- endConditions game] 
+                            
+            if not (null endCon) then do
                 prettyPrint newBoard
-                return $ Just currPlayer
-            else if drawCon then do
-                prettyPrint newBoard
-                return Nothing
+                return $ (fst . head) endCon game {board = newBoard}
             else
                 play' $ game {players = cyclePlayers $ players game, board = newBoard}
+
 
 
 -- | Gets an input from the user and determines whether or not it is valid
@@ -92,12 +88,6 @@ filterPieces player ((Piece s p):ps) =
         Piece s p : filterPieces player ps
     else
         filterPieces player ps
-
--- | Places a piece in a certain position on the board
-placePiece :: Piece -> Pos -> Board -> Board
-placePiece p (Pos x y) b = replaceAtIndex y newRow b
-    where tile = PieceTile p (Pos x y)
-          newRow = replaceAtIndex x tile (b !! y)
 
 -- | Current player is put last in the player list
 cyclePlayers :: [Player] -> [Player]

@@ -22,10 +22,10 @@ tictactoe = emptyGame {
     rules = [
         PlaceRule tileIsEmpty
     ],
-    endConditions = EndCondition {
-        drawCondition = [boardIsFull],
-        winCondition = [inARow 3]
-    }
+    endConditions = [
+        (currentPlayer, inARow 3),
+        (draw, boardIsFull)
+    ]
 }
 
 
@@ -45,10 +45,10 @@ tictactoeVariant x y z = emptyGame {
     rules = [
         PlaceRule tileIsEmpty
     ],
-    endConditions = EndCondition {
-        drawCondition = [boardIsFull],
-        winCondition = [inARow z]
-    }
+    endConditions = [
+        (currentPlayer, inARow z),
+        (draw, boardIsFull)
+    ]
 }
 
 connectFour :: Game
@@ -66,8 +66,34 @@ connectFour = emptyGame {
         PlaceRule tileIsEmpty,
         PlaceRule tileBelowIsNotEmpty
     ],
-    endConditions = EndCondition {
-        drawCondition = [boardIsFull],
-        winCondition = [inARow 4]
-    }
+    endConditions = [
+        (currentPlayer, inARow 4),
+        (draw, boardIsFull)
+    ]
+}
+
+othello :: Game
+othello = emptyGame {
+    board = initRectBoard 8 8 [
+        ((4,4), Piece "O" (Player "A")),
+        ((5,5), Piece "O" (Player "A")),
+        ((4,5), Piece "X" (Player "B")),
+        ((5,4), Piece "X" (Player "B"))
+    ],
+    pieces = [
+        Piece "O" (Player "A"),
+        Piece "X" (Player "B")
+    ],
+    players = [
+        Player "A",
+        Player "B"
+    ],
+    rules = [
+        PlaceRule tileIsEmpty
+    ],
+    endConditions = [
+        (currentPlayer, inARow 4),
+        (draw, boardIsFull)
+--      (playerWithMostPieces, noPlayerHasMoves)
+    ]
 }

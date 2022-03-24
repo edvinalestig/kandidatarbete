@@ -9,10 +9,15 @@ module DSL.Lib (
     emptyGame,
     -- * Boards
     rectBoard,
+    initRectBoard,
     -- * Rules
+    currentPlayer,
+    draw,
     tileIsEmpty,
     tileBelowIsNotEmpty,
     boardIsFull,
+    playerWithMostPieces,
+    playersWithMostPieces,
     inARow,
     getDiagonals,
     getRows,
@@ -22,6 +27,9 @@ module DSL.Lib (
 import DSL.Types
 import DSL.Utility
 import Data.List
+import Data.Ord
+import Data.Function
+import Data.Maybe (Maybe(Nothing))
 
 -- | An empty `Game` 
 emptyGame :: Game
@@ -40,7 +48,18 @@ emptyGame = Game {
 rectBoard :: Int -> Int -> Board
 rectBoard w h = [[Empty (Pos x y) | x <- [0..w-1]] | y <- [0..h-1]]
 
+initRectBoard :: Int -> Int -> [((Int, Int), Piece)] -> Board
+initRectBoard w h []            = [[Empty (Pos x y) | x <- [0..w-1]] | y <- [0..h-1]]
+initRectBoard w h (((x,y), pi):ps) = placePiece pi (Pos (x-1) (y-1)) $ initRectBoard w h ps
+
+
 -- * Rules
+
+currentPlayer :: Game -> Maybe Player
+currentPlayer g = Just $ head (players g)
+
+draw :: Game -> Maybe Player
+draw _ = Nothing
 
 -- | Checks if a `Tile` at a given position is empty
 tileIsEmpty :: Pos -> Board -> Bool
@@ -64,6 +83,33 @@ inARow k b = do
     any allEQ everything
 
 -- * Helper functions
+
+-- | Counts how many pieces of one type there are on the board
+countPiece :: Piece -> Board -> Int
+countPiece p b = length $ filter (samePiece p) (concat b)
+
+
+playerWithMostPieces :: Game -> Maybe Player
+playerWithMostPieces game | length ps == 1 = Just $ head ps
+                          | otherwise      = Nothing
+    where
+        ps = playersWithMostPieces (players game) (board game)
+
+-- | Returns a list containing all pieces on the board belonging to a player        
+playerPieces :: Player -> Board -> [Piece]
+playerPieces p b = filter (\x -> getPlayer x == p) as
+    where
+        as = [pie | PieceTile pie pos <- concat b]
+ 
+
+-- | Returns a list containing all players with the most pieces on the board
+playersWithMostPieces :: [Player] -> Board -> [Player]
+playersWithMostPieces ps b = players
+         where amounts = map length $ playerPieces <$> ps <*> [b]
+               amounts' = zip ps amounts
+               players = [player | (player, n) <- amounts', n >= maximum amounts]
+
+ 
 
 -- | Gets a list of all diagonals of a certain length on the board
 getDiagonals :: Board -> Int -> [[Tile]]

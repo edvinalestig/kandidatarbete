@@ -3,7 +3,9 @@ Module      : Utility
 Description : A Haskell module containing various utility functions
 -}
 module DSL.Utility (
+    placePiece,
     getTile,
+    getPlayer,
     filterNothing,
     replaceAtIndex
 ) where
@@ -11,8 +13,18 @@ module DSL.Utility (
 import DSL.Types
 
 -- | Returns a `Tile` given a position and a board
+
+-- | Places a piece in a certain position on the board
+placePiece :: Piece -> Pos -> Board -> Board
+placePiece p (Pos x y) b = replaceAtIndex y newRow b
+    where tile = PieceTile p (Pos x y)
+          newRow = replaceAtIndex x tile (b !! y)
+
 getTile :: Board -> Pos -> Tile
 getTile b (Pos x y) = (b !! y) !! x
+
+getPlayer :: Piece -> Player
+getPlayer (Piece _ p) = p
 
 -- | Filters out `Nothing` from a list of `Maybe`
 filterNothing :: [Maybe a] -> [a]

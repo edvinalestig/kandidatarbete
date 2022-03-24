@@ -23,10 +23,9 @@ data Game = Game
         board         :: Board,
         pieces        :: [Piece],
         dice          :: [Die],
-        -- equipment  :: (Equipment t) => [t],
         players       :: [Player],
         rules         :: [Rule],
-        endConditions :: EndCondition
+        endConditions :: [EndCondition]
     }
 
 
@@ -40,10 +39,7 @@ data Pos = Pos Int Int
 
 -- | A record containing conditions to be met for the game to end.
 --   It can have multiple functions for draws and wins. 
-data EndCondition = EndCondition {
-    drawCondition :: [Board -> Bool],
-    winCondition  :: [Board -> Bool]
-}
+type EndCondition = (Game -> Maybe Player, Board -> Bool)
 
 -- | A player object with a name
 newtype Player = Player String
