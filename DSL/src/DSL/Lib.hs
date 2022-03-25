@@ -18,7 +18,10 @@ module DSL.Lib (
     boardIsFull,
     playerWithMostPieces,
     playersWithMostPieces,
+    checkSurrPieces,
+    getDiagonalTiles,
     inARow,
+    checkSurrLine,
     getDiagonals,
     getRows,
     getColumns
@@ -62,25 +65,57 @@ draw :: Game -> Maybe Player
 draw _ = Nothing
 
 -- | Checks if a `Tile` at a given position is empty
-tileIsEmpty :: Pos -> Board -> Bool
-tileIsEmpty pos board = empty' $ getTile board pos
+tileIsEmpty :: Piece -> Pos -> Board -> Bool
+tileIsEmpty _ pos board = empty' $ getTile board pos
 
 -- | A rule for checking if the tile below a tile is empty
-tileBelowIsNotEmpty :: Pos -> Board -> Bool -- Only used in connect four atm, might not work
-tileBelowIsNotEmpty (Pos x y) board = do 
+tileBelowIsNotEmpty :: Piece -> Pos -> Board -> Bool
+tileBelowIsNotEmpty p (Pos x y) board = do 
     let maxY = length board - 1 -- Bottom row
-    y >= maxY || not (tileIsEmpty (Pos x (y+1)) board)
+    y >= maxY || not (tileIsEmpty p (Pos x (y+1)) board)
 
 -- | Checks if the board is full
-boardIsFull :: Board -> Bool
-boardIsFull b = " " `notElem` concatMap (map show) b
+boardIsFull :: Game -> Bool
+boardIsFull g = " " `notElem` concatMap (map show) (board g)
 
 -- | Checks if the board contains a given number of pieces in a row in any 
 --   orientation. (Vertical, horizontal, diagonal)
-inARow :: Int -> Board -> Bool
-inARow k b = do
+inARow :: Int -> Game -> Bool
+inARow k g = do
     let everything = getRows b k ++ getColumns b k ++ getDiagonals b k
     any allEQ everything
+    where
+        b = board g
+
+-- | NOT WORKING PROPERLY FIX THIS
+checkSurrPieces :: Piece -> Pos -> Board -> Bool
+checkSurrPieces p (Pos x y) b = a || c || d || e
+    where
+        col = transpose b !! x
+        row = b !! y
+        a = checkSurrLine p (reverse (take (y+1) col)) || checkSurrLine p (drop y col)
+        c = checkSurrLine p (reverse (take (x+1) row)) || checkSurrLine p (drop x row)
+        d = checkSurrLine p (getDiagonalTiles (reverse b) (Pos x (length b - 1 - y))) || checkSurrLine p (getDiagonalTiles b (Pos x y))
+        e = checkSurrLine p (getDiagonalTiles (transpose (map reverse b)) (Pos (length b - 1 - x) (length b - 1 - y))) || checkSurrLine p (getDiagonalTiles (map reverse b) (Pos (length b - 1 - x) y))
+
+
+checkSurrLine :: Piece -> [Tile] -> Bool
+checkSurrLine pie [] = False 
+checkSurrLine pie (_:ts) 
+    | null ts = False
+    | otherwise = noEmptyTiles && (pie == la) && pie /= ot
+    where
+        arr = concat $ take 2 (group ts)
+        noEmptyTiles = " " `notElem` map show arr
+        (PieceTile la _) = last arr
+        (PieceTile ot _) = head arr
+
+-- | Gets a list of all diagonals of a certain length on the board
+getDiagonalTiles :: Board -> Pos -> [Tile]
+getDiagonalTiles b (Pos x y) = [getTile b (Pos (x+n) (y+n)) | n <- take (min(length b - y) (length (head b) - x)) [0..]]
+
+
+-- checkSurrLine (Piece "O" (Player "A")) [Empty (1,1), PieceTile (Piece "X" (Player "B")) (Pos 1 2), PieceTile (Piece "O" (Player "A")) (Pos 1 3)]
 
 -- * Helper functions
 

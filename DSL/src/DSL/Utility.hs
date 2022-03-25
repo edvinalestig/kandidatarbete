@@ -6,13 +6,12 @@ module DSL.Utility (
     placePiece,
     getTile,
     getPlayer,
+    getPos,
     filterNothing,
     replaceAtIndex
 ) where
 
 import DSL.Types
-
--- | Returns a `Tile` given a position and a board
 
 -- | Places a piece in a certain position on the board
 placePiece :: Piece -> Pos -> Board -> Board
@@ -25,6 +24,10 @@ getTile b (Pos x y) = (b !! y) !! x
 
 getPlayer :: Piece -> Player
 getPlayer (Piece _ p) = p
+
+getPos :: Tile -> Pos
+getPos (PieceTile _ pos) = pos
+getPos (Empty pos) = pos
 
 -- | Filters out `Nothing` from a list of `Maybe`
 filterNothing :: [Maybe a] -> [a]

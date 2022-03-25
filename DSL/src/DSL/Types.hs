@@ -31,7 +31,7 @@ data Game = Game
 
 -- | A rule object with a function which has to be fulfilled in
 --   order to be able to place a piece on the board.
-data Rule = PlaceRule (Pos -> Board -> Bool)
+data Rule = PlaceRule  (Piece -> Pos -> Board -> Bool)
           | UpdateRule (Piece -> Pos -> Board -> Board)
 
 -- data Action = Place Pos
@@ -49,7 +49,7 @@ data Pos = Pos Int Int
 
 -- | A record containing conditions to be met for the game to end.
 --   It can have multiple functions for draws and wins. 
-type EndCondition = (Game -> Maybe Player, Board -> Bool)
+type EndCondition = (Game -> Maybe Player, Game -> Bool)
 
 -- | A player object with a name
 newtype Player = Player String

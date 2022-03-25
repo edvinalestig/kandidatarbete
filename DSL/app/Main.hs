@@ -82,7 +82,12 @@ othello = emptyGame {
         ((4,4), Piece "O" (Player "A")),
         ((5,5), Piece "O" (Player "A")),
         ((4,5), Piece "X" (Player "B")),
-        ((5,4), Piece "X" (Player "B"))
+        ((5,4), Piece "X" (Player "B")),
+        ((3,4), Piece "X" (Player "B")),
+        ((3,3), Piece "X" (Player "B")),
+        ((6,3), Piece "O" (Player "A")),
+        ((2,4), Piece "O" (Player "A")),
+        ((4,2), Piece "O" (Player "A"))
     ],
     pieces = [
         Piece "O" (Player "A"),
@@ -94,11 +99,11 @@ othello = emptyGame {
     ],
     rules = [
         PlaceRule tileIsEmpty,
-        UpdateRule placePiece
+        PlaceRule checkSurrPieces,
+        UpdateRule placePiece--,
+        --UpdateRule flipSurrPieces
     ],
     endConditions = [
-        (currentPlayer, inARow 4),
-        (draw, boardIsFull)
---      (playerWithMostPieces, noPlayerHasMoves)
+        (playerWithMostPieces, noPlayerHasMoves)
     ]
 }
