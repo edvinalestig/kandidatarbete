@@ -31,7 +31,17 @@ data Game = Game
 
 -- | A rule object with a function which has to be fulfilled in
 --   order to be able to place a piece on the board.
-newtype Rule = PlaceRule (Pos -> Board -> Bool)
+data Rule = PlaceRule (Pos -> Board -> Bool)
+          | UpdateRule (Piece -> Pos -> Board -> Board)
+
+-- data Action = Place Pos
+--             | Move Pos Pos Piece
+-- tileIsEmpty >>= tileBelowIsNotEmpty >>= placeTile
+-- newType Rule = PlaceRule ([Restriction], [Move])
+-- newType Rule = PlaceRule (Board -> [Restriction] -> [Action] -> Maybe Board)
+
+-- newType Restriction = Restriction -> Board -> Bool
+-- newType Move = Action -> Board -> Board
 
 -- | A simple vector object containing a x and a y value
 data Pos = Pos Int Int 

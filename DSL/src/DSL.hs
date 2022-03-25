@@ -33,22 +33,43 @@ play g = do
         play' game = do
             prettyPrint $ board game
             let currPlayer = head $ players game
-                placeRules' = rules game
             putStrLn $ "Player " ++ show currPlayer ++ "'s turn"
 
-            input <- getValidInput placeRules' (board game)
-
             piece <- getValidPiece currPlayer (pieces game)
-            let newBoard = placePiece piece input (board game)
-                endCon = filter ((== True) . snd) [(p, f newBoard) | (p,f) <- endConditions game] 
-                            
+
+            input <- getValidInput (rules game) (board game)
+
+            -- ex b (board game)
+            -- let newBoard = placePiece piece input (board game)
+            --let newBoard = update piece input (board game) (rules game)
+
+            let r' = [UpdateRule f | (UpdateRule f) <- rules game]
+                newBoard = foldl (\b (UpdateRule x) -> x piece input b) (board game) r'
+                endCon = filter ((== True) . snd) [(p, f newBoard) | (p,f) <- endConditions game]
+
+
+
             if not (null endCon) then do
                 prettyPrint newBoard
                 return $ (fst . head) endCon game {board = newBoard}
             else
                 play' $ game {players = cyclePlayers $ players game, board = newBoard}
 
+{- ex :: Pos -> Board -> [Rule] -> Board
+ex = foldl (\p b (UpdateRule x) -> x $ p b) 
 
+ex :: Pos -> Board -> [Rule] -> Board
+ex _ b [] = b
+ex p b (x:xs) = ex p (x p b) xs
+-}
+{- update :: Piece -> Pos -> Board -> [Rule] -> Board
+update _   _ b []                  = b
+update pie p b ((UpdateRule x):xs) = update pie p (x pie p b) xs
+update pie p b (x:xs)              = update pie p b xs -}
+
+
+
+-- (\(UpdateRule f) -> f) 
 
 -- | Gets an input from the user and determines whether or not it is valid
 getValidInput :: [Rule] -> Board -> IO Pos
@@ -60,21 +81,25 @@ getValidInput r b = do
         getValidInput r b
     else do
         let [x, y] = xs
-            valid = all (\(PlaceRule f) -> f (Pos (x-1) (y-1)) b) r
+            r' = [PlaceRule f | (PlaceRule f) <- r]
+            valid = all (\(PlaceRule f) -> f (Pos (x-1) (y-1)) b) r'
 
         if valid then return (Pos (x-1) (y-1)) else getValidInput r b
-        -- case readMaybe (show (x,y)) :: Maybe (Int, Int) of
+        -- case re  adMaybe (show (x,y)) :: Maybe (Int, Int) of
         --     Just a 
 
 -- | Asks the user for which piece they want to place
 getValidPiece :: Player -> [Piece] -> IO Piece
 getValidPiece player ps = do
-    putStrLn $ "Enter a desired piece among the following [0-" ++ show (length filteredPieces - 1) ++ "]: "
-    mapM_ (putStrLn . helper) filteredPieces
-    input <- getLine
-    case readMaybe input :: Maybe Int of
-        Just a -> return $ filteredPieces !! a
-        Nothing -> getValidPiece player ps
+    if length filteredPieces == 1 then
+        return $ head filteredPieces
+    else do
+        putStrLn $ "Enter a desired piece among the following [0-" ++ show (length filteredPieces - 1) ++ "]: "
+        mapM_ (putStrLn . helper) filteredPieces
+        input <- getLine
+        case readMaybe input :: Maybe Int of
+            Just a -> return $ filteredPieces !! a
+            Nothing -> getValidPiece player ps
 
     where
         helper p = "Piece: " ++ show p

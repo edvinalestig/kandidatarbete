@@ -3,6 +3,7 @@ module Main where
 import DSL
 import DSL.Types
 import DSL.Lib
+import DSL.Utility
 
 main :: IO ()
 main = play tictactoe
@@ -20,7 +21,8 @@ tictactoe = emptyGame {
         Player "B"
     ],
     rules = [
-        PlaceRule tileIsEmpty
+        PlaceRule tileIsEmpty,
+        UpdateRule placePiece
     ],
     endConditions = [
         (currentPlayer, inARow 3),
@@ -43,7 +45,8 @@ tictactoeVariant x y z = emptyGame {
         Player "C"
     ],
     rules = [
-        PlaceRule tileIsEmpty
+        PlaceRule tileIsEmpty,
+        UpdateRule placePiece
     ],
     endConditions = [
         (currentPlayer, inARow z),
@@ -64,7 +67,8 @@ connectFour = emptyGame {
     ],
     rules = [
         PlaceRule tileIsEmpty,
-        PlaceRule tileBelowIsNotEmpty
+        PlaceRule tileBelowIsNotEmpty,
+        UpdateRule placePiece
     ],
     endConditions = [
         (currentPlayer, inARow 4),
@@ -89,7 +93,8 @@ othello = emptyGame {
         Player "B"
     ],
     rules = [
-        PlaceRule tileIsEmpty
+        PlaceRule tileIsEmpty,
+        UpdateRule placePiece
     ],
     endConditions = [
         (currentPlayer, inARow 4),
