@@ -31,7 +31,7 @@ playGame game = do
 
     let currPlayer = head $ players game
     if not (playerHasMoves game currPlayer) then do
-        putStrLn $ "Player " ++ show currPlayer ++ "'s turn is skipped — no valid moves"
+        putStrLn $ "Player " ++ show currPlayer ++ "'s turn is skipped - no valid moves"
         playGame $ game {players = cyclePlayers $ players game}
     else do
         putStrLn $ "Player " ++ show currPlayer ++ "'s turn"
@@ -51,9 +51,9 @@ playGame game = do
 -- | Plays one turn
 playTurn :: Game -> Piece -> Pos -> (Game, Maybe Player)
 playTurn game piece position = do
-    if not $ isValidInput piece game pos then
+    if not $ isValidInput piece game position then
         (game, Nothing)
-    else
+    else do
         let r'       = [UpdateRule f | (UpdateRule f) <- rules game]
             newBoard = foldl (\b (UpdateRule x) -> x piece position b) (board game) r'
             endCon   = filter ((== True) . snd) [(p, f (game {board = newBoard})) | (p,f) <- endConditions game]
@@ -91,16 +91,16 @@ pieceHasMoves p rs b (t:ts) = inputs rs p t || pieceHasMoves p rs b ts
 -- | Gets an input from the user and determines whether or not it is valid
 getValidInput :: Piece -> Game -> IO Pos
 getValidInput p g = do
-    let r = rules game
-        b = board game
+    let r = rules g
+        b = board g
     putStrLn "Enter desired location (format: x,y)"
     input <- getLine
     let xs = filterNothing (map readMaybe $ splitOn "," input :: [Maybe Int])
     if length xs /= 2 then
-        getValidInput p r b
+        getValidInput p g
     else do
         let [x, y] = xs
-        Pos (x-1) (y-1)
+        return $ Pos (x-1) (y-1)
 
 -- | Checks whether or not you can place a piece at a specific location
 isValidInput :: Piece -> Game -> Pos -> Bool
