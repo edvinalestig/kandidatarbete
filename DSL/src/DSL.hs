@@ -75,16 +75,17 @@ playerHasMoves g p = playerHasMoves' (filterPieces p (pieces g)) (rules g) (boar
     where
         playerHasMoves' :: [Piece] -> [Rule] -> Board -> Bool
         playerHasMoves' []     rs b = False
-        playerHasMoves' (p:ps) rs b = pieceHasMoves p rs b || playerHasMoves' ps rs b
+        playerHasMoves' (p:ps) rs b = pieceHasMoves p rs b (concat b) || playerHasMoves' ps rs b
 
 -- | Determines if a given piece has any legal moves with regards to the rules and a board state
-pieceHasMoves :: Piece -> [Rule] -> Board -> Bool
-pieceHasMoves p [] b = False
-pieceHasMoves p (r:rs) b = inputs r p b || pieceHasMoves p rs b
+pieceHasMoves :: Piece -> [Rule] -> Board -> [Tile] -> Bool
+pieceHasMoves _ _ _ [] = False
+pieceHasMoves _ [] _ _ = False
+pieceHasMoves p rs b (t:ts) = inputs rs p t || pieceHasMoves p rs b ts
     where
-        inputs :: Rule -> Piece -> Board -> Bool
-        inputs (PlaceRule x) p b = any ((\pos -> x p pos b) . getPos) (concat b)
-        inputs _ _ _ = False
+        inputs :: [Rule] -> Piece -> Tile -> Bool
+        inputs rs p t = all (\f -> f p (getPos t) b) r'
+        r' = [f | (PlaceRule f) <- rs]
 
 
 -- | Gets an input from the user and determines whether or not it is valid

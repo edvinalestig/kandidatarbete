@@ -19,6 +19,7 @@ module DSL.Lib (
     playerWithMostPieces,
     playersWithMostPieces,
     checkSurrPieces,
+    changeSurrLines,
     getDiagonalTiles,
     inARow,
     checkSurrLine,
@@ -73,7 +74,7 @@ tileIsEmpty _ pos board = empty' $ getTile board pos
 
 -- | A rule for checking if the tile below a tile is empty
 tileBelowIsNotEmpty :: Piece -> Pos -> Board -> Bool
-tileBelowIsNotEmpty p (Pos x y) board = do 
+tileBelowIsNotEmpty p (Pos x y) board = do
     let maxY = length board - 1 -- Bottom row
     y >= maxY || not (tileIsEmpty p (Pos x (y+1)) board)
 
@@ -90,33 +91,55 @@ inARow k g = do
     where
         b = board g
 
--- | NOT WORKING PROPERLY FIX THIS
 checkSurrPieces :: Piece -> Pos -> Board -> Bool
 checkSurrPieces p (Pos x y) b = a || c || d || e
     where
         col = transpose b !! x
         row = b !! y
-        a = checkSurrLine p (reverse (take (y+1) col)) || checkSurrLine p (drop y col)
-        c = checkSurrLine p (reverse (take (x+1) row)) || checkSurrLine p (drop x row)
+        a = checkSurrLine p (reverse (take y col)) || checkSurrLine p (drop (y+1) col)
+        c = checkSurrLine p (reverse (take x row)) || checkSurrLine p (drop (x+1) row)
         d = checkSurrLine p (getDiagonalTiles (reverse b) (Pos x (length b - 1 - y))) || checkSurrLine p (getDiagonalTiles b (Pos x y))
-        e = checkSurrLine p (getDiagonalTiles (transpose (map reverse b)) (Pos (length b - 1 - x) (length b - 1 - y))) || checkSurrLine p (getDiagonalTiles (map reverse b) (Pos (length b - 1 - x) y))
+        e = checkSurrLine p (getDiagonalTiles (reverse (map reverse b)) (Pos (length b - 1 - x) (length b - 1 - y))) || checkSurrLine p (getDiagonalTiles (map reverse b) (Pos (length b - 1 - x) y))
+
+changeSurrLines :: Piece -> Pos -> Board -> Board
+changeSurrLines p (Pos x y) b = foldl (`changeSurrLine` p) b ts
+    where
+        col = transpose b !! x
+        row = b !! y
+        ts = [reverse (take y col),
+              drop (y+1) col,
+              reverse (take x row),
+              drop (x+1) row,
+              getDiagonalTiles (reverse b) (Pos x (length b - 1 - y)),
+              getDiagonalTiles b (Pos x y),
+              getDiagonalTiles (reverse (map reverse b)) (Pos (length b - 1 - x) (length b - 1 - y)),
+              getDiagonalTiles (map reverse b) (Pos (length b - 1 - x) y)]
 
 
 checkSurrLine :: Piece -> [Tile] -> Bool
-checkSurrLine pie [] = False 
-checkSurrLine pie (_:ts) 
-    | null ts = False
+checkSurrLine pie [] = False
+checkSurrLine pie ts
+    | length ts < 2 = False
     | otherwise = noEmptyTiles && (pie == la) && pie /= ot
     where
-        arr = concat $ take 2 (group ts)
+        arr = concat $ take 2 (groupBy eqTile ts)
         noEmptyTiles = " " `notElem` map show arr
         (PieceTile la _) = last arr
         (PieceTile ot _) = head arr
 
+changeSurrLine :: Board -> Piece -> [Tile] -> Board
+changeSurrLine b p tss@((PieceTile p2 pos):ts) | p /= p2 && checkSurrLine p tss = changeSurrLine (placePiece p pos b) p ts
+changeSurrLine b _ _  = b --error "changeSurrLine: Empty tile reached."
+
 -- | Gets a list of all diagonals of a certain length on the board
 getDiagonalTiles :: Board -> Pos -> [Tile]
-getDiagonalTiles b (Pos x y) = [getTile b (Pos (x+n) (y+n)) | n <- take (min(length b - y) (length (head b) - x)) [0..]]
+getDiagonalTiles b (Pos x y) = tail [getTile b (Pos (x+n) (y+n)) | n <- take (min(length b - y) (length (head b) - x)) [0..]]
 
+-- | Check if two tiles has the same piece on it, or if both tiles are empty 
+eqTile :: Tile -> Tile -> Bool
+eqTile (PieceTile p1 _) (PieceTile p2 _) = p1 == p2
+eqTile (Empty _) (Empty _) = True
+eqTile _ _ = False
 
 -- checkSurrLine (Piece "O" (Player "A")) [Empty (1,1), PieceTile (Piece "X" (Player "B")) (Pos 1 2), PieceTile (Piece "O" (Player "A")) (Pos 1 3)]
 
@@ -138,7 +161,7 @@ playerPieces :: Player -> Board -> [Piece]
 playerPieces p b = filter (\x -> getPlayer x == p) as
     where
         as = [pie | PieceTile pie pos <- concat b]
- 
+
 
 -- | Returns a list containing all players with the most pieces on the board
 playersWithMostPieces :: [Player] -> Board -> [Player]
@@ -147,7 +170,7 @@ playersWithMostPieces ps b = players
                amounts' = zip ps amounts
                players = [player | (player, n) <- amounts', n >= maximum amounts]
 
- 
+
 
 -- | Gets a list of all diagonals of a certain length on the board
 getDiagonals :: Board -> Int -> [[Tile]]
@@ -155,7 +178,7 @@ getDiagonals b k = getDiagonals' b k ++ getDiagonals' (map reverse b) k
     where
         getDiagonals' b k = concat [[[(b !! (y + k')) !! (x + k') | k' <- [0..k-1]]
                             | x <- [0..length (head b) - k]]
-                            | y <- [0..length b - k]] 
+                            | y <- [0..length b - k]]
 
 -- | Gets a list of all rows of a given length on the board
 getRows :: Board -> Int -> [[Tile]]
