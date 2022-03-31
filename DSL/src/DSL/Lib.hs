@@ -24,7 +24,8 @@ module DSL.Lib (
     checkSurrLine,
     getDiagonals,
     getRows,
-    getColumns
+    getColumns,
+    prettyPrint
 ) where
 
 import DSL.Types
@@ -42,7 +43,9 @@ emptyGame = Game {
     dice = [],
     players = [],
     rules = [],
-    endConditions = undefined
+    endConditions = undefined,
+    gameEnded = False,
+    dispFunction = prettyPrint
 }
 
 -- * Boards
@@ -177,3 +180,25 @@ empty'  _        = False
 samePiece :: Piece -> Tile -> Bool
 samePiece _ (Empty _) = False
 samePiece p (PieceTile p2 _) = p == p2
+
+--------- Display functions ---------
+
+-- | Prints a board in the terminal. It's pretty.
+prettyPrint :: Game -> IO ()
+prettyPrint game = do
+    let b = board game
+    putStrLn $ replicate (1 + 4 * length (head b)) '-'
+    prettyPrint' $ map (map f) b
+
+    where
+        f :: Tile -> String
+        f t = case t of
+            Empty _ -> " "
+            s       -> show s
+
+        prettyPrint' :: [[String]] -> IO ()
+        prettyPrint' [] = return ()
+        prettyPrint' (b:bs)  = do
+            putStrLn $ foldl (\s t -> s ++ t ++ " | ") "| " b
+            putStrLn $ replicate (1 + 4 * length b) '-'
+            prettyPrint' bs

@@ -25,7 +25,9 @@ data Game = Game
         dice          :: [Die],
         players       :: [Player],
         rules         :: [Rule],
-        endConditions :: [EndCondition]
+        endConditions :: [EndCondition],
+        gameEnded     :: Bool,
+        dispFunction  :: (Game -> IO ())
     }
 
 

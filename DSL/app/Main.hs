@@ -6,7 +6,7 @@ import DSL.Lib
 import DSL.Utility
 
 main :: IO ()
-main = play tictactoe
+main = playGame tictactoe
 
 -- tic-tac-toe
 tictactoe :: Game

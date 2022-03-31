@@ -8,8 +8,10 @@ Description : A Haskell module containing the majority of the code in this libra
 This module contains the functions that are required for actually playing a board game
 -}
 module DSL (
-    play,
-    noPlayerHasMoves
+    -- play,
+    noPlayerHasMoves,
+    playGame,
+    prettyPrint
 ) where
 
 import DSL.Lib
@@ -20,38 +22,47 @@ import Control.Monad.Random (evalRandIO, MonadRandom (getRandomR))
 import Data.Bifunctor (Bifunctor(bimap))
 import Data.List.Split (chunksOf, splitOn)
 import Text.Read (readMaybe)
+import GHC.Base (undefined)
 
+-- | Plays a game
+playGame :: Game -> IO ()
+playGame game = do
+    (dispFunction game) game
 
--- | Runs a `Game`
-play :: Game -> IO ()
-play g = do
-    winner <- play' g
-    case winner of
-        Nothing -> putStrLn "Draw!"
-        Just p -> putStrLn $ "Player " ++ show p ++ " has won!"
-    where
-        play' :: Game -> IO (Maybe Player)
-        play' game = do
-            prettyPrint $ board game
-            let currPlayer = head $ players game
-            if not (playerHasMoves game currPlayer) then do
-                putStrLn $ "Player " ++ show currPlayer ++ "'s turn is skipped — no valid moves"
-                play' $ game {players = cyclePlayers $ players game}
-            else do
-                putStrLn $ "Player " ++ show currPlayer ++ "'s turn"
+    let currPlayer = head $ players game
+    if not (playerHasMoves game currPlayer) then do
+        putStrLn $ "Player " ++ show currPlayer ++ "'s turn is skipped — no valid moves"
+        playGame $ game {players = cyclePlayers $ players game}
+    else do
+        putStrLn $ "Player " ++ show currPlayer ++ "'s turn"
+        piece <- getValidPiece currPlayer (pieces game)
+        input <- getValidInput piece game
 
-                piece <- getValidPiece currPlayer (pieces game)
-                input <- getValidInput piece (rules game) (board game)
+        let (newGame, winner) = playTurn game piece input
 
-                let r' = [UpdateRule f | (UpdateRule f) <- rules game]
-                    newBoard = foldl (\b (UpdateRule x) -> x piece input b) (board game) r'
-                    endCon = filter ((== True) . snd) [(p, f (game {board = newBoard})) | (p,f) <- endConditions game]
+        if gameEnded newGame then
+            (dispFunction game) newGame >>
+            case winner of
+                Nothing -> putStrLn "Draw!"
+                Just p -> putStrLn $ "Player " ++ show p ++ " has won!"
+        else
+            playGame newGame
 
-                if not (null endCon) then do
-                    prettyPrint newBoard
-                    return $ (fst . head) endCon game {board = newBoard}
-                else
-                    play' $ game {players = cyclePlayers $ players game, board = newBoard}
+-- | Plays one turn
+playTurn :: Game -> Piece -> Pos -> (Game, Maybe Player)
+playTurn game piece position = do
+    if not $ isValidInput piece game pos then
+        (game, Nothing)
+    else
+        let r'       = [UpdateRule f | (UpdateRule f) <- rules game]
+            newBoard = foldl (\b (UpdateRule x) -> x piece position b) (board game) r'
+            endCon   = filter ((== True) . snd) [(p, f (game {board = newBoard})) | (p,f) <- endConditions game]
+            newState = game {players = cyclePlayers $ players game, board = newBoard}
+            
+        if not (null endCon) then do
+            (newState {gameEnded = True}, (fst . head) endCon game {board = newBoard})
+        else
+            (newState {gameEnded = False}, Nothing)
 
 
 -- | Returns `True` if no player has any valid moves, `False` otherwise
@@ -77,8 +88,10 @@ pieceHasMoves p (r:rs) b = inputs r p b || pieceHasMoves p rs b
 
 
 -- | Gets an input from the user and determines whether or not it is valid
-getValidInput :: Piece -> [Rule] -> Board -> IO Pos
-getValidInput p r b = do
+getValidInput :: Piece -> Game -> IO Pos
+getValidInput p g = do
+    let r = rules game
+        b = board game
     putStrLn "Enter desired location (format: x,y)"
     input <- getLine
     let xs = filterNothing (map readMaybe $ splitOn "," input :: [Maybe Int])
@@ -86,12 +99,13 @@ getValidInput p r b = do
         getValidInput p r b
     else do
         let [x, y] = xs
-            r' = [PlaceRule f | (PlaceRule f) <- r]
-            valid = all (\(PlaceRule f) -> f p (Pos (x-1) (y-1)) b) r'
+        Pos (x-1) (y-1)
 
-        if valid then return (Pos (x-1) (y-1)) else getValidInput p r b
-        -- case re  adMaybe (show (x,y)) :: Maybe (Int, Int) of
-        --     Just a 
+-- | Checks whether or not you can place a piece at a specific location
+isValidInput :: Piece -> Game -> Pos -> Bool
+isValidInput piece game pos = all (\(PlaceRule f)  -> f piece pos (board game)) 
+                                  [PlaceRule f | (PlaceRule f) <- (rules game)]
+
 
 -- | Asks the user for which piece they want to place
 getValidPiece :: Player -> [Piece] -> IO Piece
@@ -109,6 +123,7 @@ getValidPiece player ps = do
     where
         helper p = "Piece: " ++ show p
         filteredPieces = filterPieces player ps
+
 
 -- | Returns a list containing all pieces that the given player can place
 filterPieces :: Player -> [Piece] -> [Piece]
@@ -130,24 +145,7 @@ cyclePlayers ps = tail ps ++ [head ps]
 throwDie :: Die -> IO Int
 throwDie (Die n) = evalRandIO $ getRandomR (1,n)
 
--- | Prints a board in the terminal. It's pretty.
-prettyPrint :: Board -> IO ()
-prettyPrint b = do
-    putStrLn $ replicate (1 + 4 * length (head b)) '-'
-    prettyPrint' $ map (map f) b
 
-    where
-        f :: Tile -> String
-        f t = case t of
-            Empty _ -> " "
-            s       -> show s
-
-        prettyPrint' :: [[String]] -> IO ()
-        prettyPrint' [] = return ()
-        prettyPrint' (b:bs)  = do
-            putStrLn $ foldl (\s t -> s ++ t ++ " | ") "| " b
-            putStrLn $ replicate (1 + 4 * length b) '-'
-            prettyPrint' bs
 
 
 
