@@ -16,6 +16,7 @@ module DSL.Types (
 ) where
 
 import Test.QuickCheck
+-- import Data.Map (Map)
 
 -- | The main game object where all game info is contained. 
 data Game = Game
@@ -28,9 +29,29 @@ data Game = Game
         rules         :: [Rule],
         endConditions :: [EndCondition],
         gameEnded     :: Bool,
-        dispFunction  :: (Game -> IO ())
+        dispFunction  :: Game -> IO ()
     }
 
+-- data NewGame = NewGame
+--     {
+--         board         :: Board,
+--         pieces        :: [Piece],
+--         dice          :: [Die],
+--         players       :: [Player],
+--         rules         :: [(String, [NewRule])]
+--         pieceRules    :: Map Piece String,
+--         endConditions :: [EndCondition],
+--         gameEnded     :: GameState,
+--         dispFunction  :: Game -> IO ()
+--     }
+
+data Move = Move
+    {
+        piece  :: Piece,
+        pos    :: Pos--,
+        -- moveTo :: Pos,
+        -- steps  :: Int
+    }
 
 -- | A rule object with a function which has to be fulfilled in
 --   order to be able to place a piece on the board.
@@ -41,17 +62,97 @@ data Rule = PlaceRule     (Piece -> Pos -> Board -> Bool)
           | UpdateRule    (Piece -> Pos -> Board -> Board)
 
 
--- data Action = Place Pos
---             | Move Pos Pos Piece
--- tileIsEmpty >>= tileBelowIsNotEmpty >>= placeTile
--- newType Rule = PlaceRule ([Restriction], [Move])
--- newType Rule = PlaceRule (Board -> [Restriction] -> [Action] -> Maybe Board)
+data Update a = Update (Piece -> Pos -> Board -> Board)
+              | (Update a) `COMBINE` (Update a)
 
--- newType Restriction = Restriction -> Board -> Bool
--- newType Move = Action -> Board -> Board
+data NewRule a = Rule (Update a)
+               | If (Condition a) (NewRule a)
+               | IfElse (Condition a) (NewRule a) (NewRule a)
+               | PlaceIf (Condition a) (NewRule a) Move
+
+            --    | NewPlaceRule (Game -> Move -> Bool) a
+               -- | Condition (NewRule a)
+            --    | (NewRule a) `AND` (NewRule a)
+            --    | (NewRule a) `OR` (NewRule a)
+               -- | NOT (NewRule a)
+
+data Condition a = Condition (Piece -> Pos -> Board -> Bool)
+                 | (Condition a) `AND` (Condition a)
+                 | (Condition a) `OR`  (Condition a)
+                 | (Condition a) `XOR` (Condition a)
+                 | NOT (Condition a)
+                --  | IF (Condition a) Action
+                --  | IFELSE (Condition a) Action Action
+
+rules2 :: [NewRule a]
+rules2 = [ If (Condition tileIsEmpty `AND` Condition (or . pattern [oneOrMore . enemyPiece, oneOrMore . alliedPiece] . allDirections))
+           (Rule (Update placePiece `COMBINE` Update (change to (allDirections (pattern [oneOrMore enemyPiece, oneOrMore alliedPiece])))))
+        ]
+
+d :: Piece -> Bool
+d = or . pattern [oneOrMore . enemyPiece, oneOrMore . alliedPiece] . allDirections
+
+a :: Piece -> Pos -> Board -> Bool
+a pi po = or . pattern [oneOrMore . enemyPiece, oneOrMore . alliedPiece] . allDirections pi po
+
+
+tileIsEmpty :: Piece -> Pos -> Board -> Bool
+tileIsEmpty = undefined
+pattern :: [[Tile] -> Bool] -> [[Tile]] -> [Bool]
+pattern = undefined
+oneOrMore :: [Bool] -> Bool
+oneOrMore = undefined
+allDirections :: Piece -> Pos -> Board -> [[Tile]]
+allDirections = undefined
+placePiece :: Piece -> Pos -> Board -> Board
+placePiece = undefined
+change :: (Piece -> Piece) -> [Pos] -> Board -> Board
+change = undefined
+enemyPiece :: [Tile] -> [Bool]
+enemyPiece = undefined
+alliedPiece :: [Tile] -> [Bool]
+alliedPiece = undefined
+to :: Piece -> Piece
+to = undefined
+
+instance Functor NewRule where
+    fmap = undefined
+
+instance Applicative NewRule where
+    pure  = return
+    (<*>) = undefined
+
+instance Monad NewRule where
+    return = undefined
+    (>>=)  = undefined
+
+-- SCHACK BONDE : IF ((FORWARD 1 AND EMPTYTILE) OR ((FORWARD 1 AND (LEFT 1 OR RIGHT 1)) AND ENEMYPIECE)) >>= (MOVEPIECE)
+-- bonde:   IFELSE (FORWARD 1 AND EMPTYTILE) 
+    --          (MOVEPIECE) $
+
+    --          IF (DIAGONAL 1 AND ENEMYPIECE) 
+    --              (REMOVEENEMYPIECE AND MOVEPIECE) 
+
+{-
+rules = [ If (tileIsEmpty AND or . allDirections . (Pattern [oneOrMore enemyPiece, oneOrMore alliedPiece]))
+             (placePiece AND change (enemyPiece to alliedPiece) (allDirections (Pattern [oneOrMore enemyPiece, oneOrMore alliedPiece])))
+        ]
+
+rules = [ If (tileIsEmpty AND (or . (Pattern [oneOrMore enemyPiece, oneOrMore alliedPiece]) . allDirections))
+             (placePiece AND change (enemyPiece to alliedPiece) (allDirections (Pattern [oneOrMore enemyPiece, oneOrMore alliedPiece])))
+        ]
+
+rules = [ If (tileIsEmpty AND (secondIsAlly (group (allDirections board)))) AND (firstIsEnemy (group (allDirections board))))) (placePiece AND ) ]
+
+-}
+
+
+-- | Data type containing information if someone won/draw or if the game is in progress
+data GameState = Maybe Player | InProgress
+
 
 -- | A simple vector object containing a x and a y value
-data Pos = Pos Int Int 
+data Pos = Pos Int Int
     deriving (Eq, Show)
 
 type Path = [Pos]
@@ -67,7 +168,7 @@ newtype Player = Player String
 -- | A piece object with a name/identifier and the player owning it
 data Piece = Piece String Player
     deriving (Eq)
-    
+
 -- | A tile object which can either be empty or it can contain a piece.
 --   `pos` might be removed.
 data Tile = PieceTile Piece Pos | Empty Pos | MultiPieceTile [Piece] Pos -- Can Pos be removed?
@@ -98,7 +199,7 @@ instance Arbitrary Player where
     arbitrary = Player <$> printableStringGen
 
 -- | A Generator for printable strings
-printableStringGen :: Gen String 
+printableStringGen :: Gen String
 printableStringGen = getASCIIString <$> (arbitrary :: Gen ASCIIString)
 -- printableString = arbitraryASCIIChar   use if Char
 

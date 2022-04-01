@@ -1,6 +1,5 @@
 {-# LANGUAGE GADTs #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-{-# HLINT ignore "Use newtype instead of data" #-}
+
 {-|
 Module      : DSL
 Description : A Haskell module containing the majority of the code in this library
@@ -22,12 +21,11 @@ import Control.Monad.Random (evalRandIO, MonadRandom (getRandomR))
 import Data.Bifunctor (Bifunctor(bimap))
 import Data.List.Split (chunksOf, splitOn)
 import Text.Read (readMaybe)
-import GHC.Base (undefined)
 
 -- | Plays a game
 playGame :: Game -> IO ()
 playGame game = do
-    (dispFunction game) game
+    dispFunction game game
 
     let currPlayer = head $ players game
     if not (playerHasMoves game currPlayer) then do
@@ -56,7 +54,7 @@ playGame game = do
 
 -- | Plays one turn
 playTurn :: Game -> Piece -> Pos -> (Game, Maybe Player)
-playTurn game piece position = do
+playTurn game piece position =
     if not $ isValidInput piece game position then
         (game, Nothing)
     else do
@@ -64,8 +62,8 @@ playTurn game piece position = do
             newBoard = foldl (\b (UpdateRule x) -> x piece position b) (board game) r'
             endCon   = filter ((== True) . snd) [(p, f (game {board = newBoard})) | (p,f) <- endConditions game]
             newState = game {players = cyclePlayers $ players game, board = newBoard}
-
-        if not (null endCon) then do
+            
+        if not (null endCon) then
             (newState {gameEnded = True}, (fst . head) endCon game {board = newBoard})
         else
             (newState {gameEnded = False}, Nothing)
@@ -122,13 +120,13 @@ getValidInput p g = do
 
 -- | Checks whether or not you can place a piece at a specific location
 isValidInput :: Piece -> Game -> Pos -> Bool
-isValidInput piece game pos = all (\(PlaceRule f)  -> f piece pos (board game))
-                                  [PlaceRule f | (PlaceRule f) <- (rules game)]
+isValidInput piece game pos = all (\(PlaceRule f)  -> f piece pos (board game)) 
+                                  [PlaceRule f | PlaceRule f <- rules game]
 
 
 -- | Asks the user for which piece they want to place
 getValidPiece :: Player -> [Piece] -> IO Piece
-getValidPiece player ps = do
+getValidPiece player ps =
     if length filteredPieces == 1 then
         return $ head filteredPieces
     else do
