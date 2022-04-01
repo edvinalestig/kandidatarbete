@@ -23,6 +23,7 @@ module DSL.Lib (
     getDiagonalTiles,
     inARow,
     checkSurrLine,
+    pieceAtPos,
     getDiagonals,
     getRows,
     getColumns,
@@ -42,6 +43,7 @@ emptyGame = Game {
     board = undefined,
     pieces = [],
     dice = [],
+    path = [],
     players = [],
     rules = [],
     endConditions = undefined,
@@ -130,6 +132,11 @@ checkSurrLine pie ts
 changeSurrLine :: Board -> Piece -> [Tile] -> Board
 changeSurrLine b p tss@((PieceTile p2 pos):ts) | p /= p2 && checkSurrLine p tss = changeSurrLine (placePiece p pos b) p ts
 changeSurrLine b _ _  = b --error "changeSurrLine: Empty tile reached."
+
+pieceAtPos :: Pos -> Game -> Bool
+pieceAtPos pos g = case getTile (board g) pos of
+        (Empty _) -> False
+        _         -> True
 
 -- | Gets a list of all diagonals of a certain length on the board
 getDiagonalTiles :: Board -> Pos -> [Tile]

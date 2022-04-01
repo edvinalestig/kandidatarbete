@@ -23,6 +23,7 @@ data Game = Game
         board         :: Board,
         pieces        :: [Piece],
         dice          :: [Die],
+        path          :: Path,
         players       :: [Player],
         rules         :: [Rule],
         endConditions :: [EndCondition],
@@ -33,8 +34,12 @@ data Game = Game
 
 -- | A rule object with a function which has to be fulfilled in
 --   order to be able to place a piece on the board.
-data Rule = PlaceRule  (Piece -> Pos -> Board -> Bool)
-          | UpdateRule (Piece -> Pos -> Board -> Board)
+data Rule = PlaceRule     (Piece -> Pos -> Board -> Bool)
+          | MoveRule      (Piece -> Pos -> Pos -> Board -> Bool)
+          | MovePathRule  (Piece -> Pos -> Int -> Path -> Board -> Bool)
+          | AutomaticMove (Pos -> Pos -> Board -> Board)
+          | UpdateRule    (Piece -> Pos -> Board -> Board)
+
 
 -- data Action = Place Pos
 --             | Move Pos Pos Piece
@@ -48,6 +53,8 @@ data Rule = PlaceRule  (Piece -> Pos -> Board -> Bool)
 -- | A simple vector object containing a x and a y value
 data Pos = Pos Int Int 
     deriving (Eq, Show)
+
+type Path = [Pos]
 
 -- | A record containing conditions to be met for the game to end.
 --   It can have multiple functions for draws and wins. 
@@ -63,7 +70,7 @@ data Piece = Piece String Player
     
 -- | A tile object which can either be empty or it can contain a piece.
 --   `pos` might be removed.
-data Tile = PieceTile Piece Pos | Empty Pos -- Can Pos be removed?
+data Tile = PieceTile Piece Pos | Empty Pos | MultiPieceTile [Piece] Pos -- Can Pos be removed?
     deriving (Eq)
 
 -- | The board contains a list of rows of tiles. 

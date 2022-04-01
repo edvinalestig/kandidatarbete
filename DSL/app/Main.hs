@@ -133,3 +133,50 @@ othello2 = emptyGame {
         (playerWithMostPieces, noPlayerHasMoves)
     ]
 }
+
+
+snakesAndLadders :: Int -> Game
+snakesAndLadders x = emptyGame {
+    board = initRectBoard 10 10 $ take x [
+        ((1, 10), Piece "A" (Player "A")),
+        ((1, 10), Piece "B" (Player "B")),
+        ((1, 10), Piece "C" (Player "C")),
+        ((1, 10), Piece "D" (Player "D"))
+    ],
+    pieces = take x [
+        Piece "A" (Player "A"),
+        Piece "B" (Player "B"),
+        Piece "C" (Player "C"),
+        Piece "D" (Player "D")
+    ],
+    players = take x [
+        Player "A",
+        Player "B",
+        Player "C",
+        Player "D"
+    ],
+    rules = [
+        PlaceRule tileIsEmpty
+        -- MovePathRule (dice 6) path,
+        -- -- Ladders
+        -- AutomaticMove (1, 9) (2, 6),
+        -- AutomaticMove (3, 9) (6, 8),
+        -- AutomaticMove (7, 9) (9, 7),
+        -- AutomaticMove (0, 7) (1, 5),
+        -- AutomaticMove (7, 7) (4, 2),
+        -- AutomaticMove (9, 5) (6, 3),
+        -- AutomaticMove (0, 2) (1, 0),
+        -- AutomaticMove (9, 2) (8, 0),
+        -- -- Snakes
+        -- AutomaticMove (3, 0) (2, 2),
+        -- AutomaticMove (5, 0) (4, 4),
+        -- AutomaticMove (7, 1) (3, 7),
+        -- AutomaticMove (1, 3) (2, 8),
+        -- AutomaticMove (7, 5) (5, 7),
+        -- AutomaticMove (4, 6) (5, 9),
+        -- AutomaticMove (8, 6) (9, 9)
+    ],
+    endConditions = [
+        (currentPlayer, pieceAtPos (Pos 1 1))
+    ]
+}
