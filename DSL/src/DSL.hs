@@ -40,7 +40,13 @@ playGame game = do
 
         let (newGame, winner) = playTurn game piece input
 
-        if gameEnded newGame then
+        -- Check if nothing happened on the board to give feedback to the user
+        -- Todo: Determine if this is the way to do it, now it assumes that all moves include changes to the board
+        if board game == board newGame then 
+            putStrLn "Inputted move does not follow the rules" >>
+            playGame newGame
+
+        else if gameEnded newGame then
             (dispFunction game) newGame >>
             case winner of
                 Nothing -> putStrLn "Draw!"
@@ -105,6 +111,7 @@ getValidInput p g = do
 
     let xs = filterNothing (map readMaybe $ splitOn "," input :: [Maybe Int])
     if length xs /= 2 then
+        putStrLn "You must write exactly two integer coordinates separated by one comma" >>
         getValidInput p g
     else do
         let [x, y] = xs
