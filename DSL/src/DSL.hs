@@ -87,6 +87,11 @@ pieceHasMoves p rs b (t:ts) = inputs rs p t || pieceHasMoves p rs b ts
         inputs rs p t = all (\f -> f p (getPos t) b) r'
         r' = [f | (PlaceRule f) <- rs]
 
+-- | Given a string, check if it is equal "q" and interupt the game by throwing an error based on that.
+--   If the string is not equal to "q", this function does nothing
+checkInterupt :: String -> IO ()
+checkInterupt s | s == "q" = error "Game interupted" 
+                | otherwise = return ()
 
 -- | Gets an input from the user and determines whether or not it is valid
 getValidInput :: Piece -> Game -> IO Pos
@@ -95,6 +100,9 @@ getValidInput p g = do
         b = board g
     putStrLn "Enter desired location (format: x,y)"
     input <- getLine
+
+    checkInterupt input
+
     let xs = filterNothing (map readMaybe $ splitOn "," input :: [Maybe Int])
     if length xs /= 2 then
         getValidInput p g
