@@ -58,7 +58,7 @@ playTurn game piece position = do
             newBoard = foldl (\b (UpdateRule x) -> x piece position b) (board game) r'
             endCon   = filter ((== True) . snd) [(p, f (game {board = newBoard})) | (p,f) <- endConditions game]
             newState = game {players = cyclePlayers $ players game, board = newBoard}
-            
+
         if not (null endCon) then do
             (newState {gameEnded = True}, (fst . head) endCon game {board = newBoard})
         else
@@ -100,11 +100,14 @@ getValidInput p g = do
         getValidInput p g
     else do
         let [x, y] = xs
-        return $ Pos (x-1) (y-1)
+        if x `notElem` [1..length $ head b] || y `notElem` [1..length b] then
+            putStrLn (show x ++ ',' : show y ++ " is not within the bounds of the board") >> 
+            getValidInput p g
+        else return $ Pos (x - 1) (y - 1)
 
 -- | Checks whether or not you can place a piece at a specific location
 isValidInput :: Piece -> Game -> Pos -> Bool
-isValidInput piece game pos = all (\(PlaceRule f)  -> f piece pos (board game)) 
+isValidInput piece game pos = all (\(PlaceRule f)  -> f piece pos (board game))
                                   [PlaceRule f | (PlaceRule f) <- (rules game)]
 
 
