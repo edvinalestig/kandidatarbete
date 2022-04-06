@@ -63,27 +63,33 @@ data Rule = TurnRule      (Turn -> Game -> Bool)
           | UpdateRule    (Turn -> Game -> Board)
 
 
-data Update a = Update (Piece -> Pos -> Board -> Board)
+data Update a = Update (a -> a)
               | (Update a) `COMBINE` (Update a)
 
-data NewRule a = Rule (Update a)
-               | If (Condition a) (NewRule a)
-               | IfElse (Condition a) (NewRule a) (NewRule a)
-               | PlaceIf (Condition a) (NewRule a) Turn
+runUpdate :: Update a -> a -> a
+runUpdate (Update f) b    = f b
+runUpdate (u1 `COMBINE` u2) b = runUpdate u2 (runUpdate u1 b)
 
-            --    | NewPlaceRule (Game -> Move -> Bool) a
-               -- | Condition (NewRule a)
-            --    | (NewRule a) `AND` (NewRule a)
-            --    | (NewRule a) `OR` (NewRule a)
-               -- | NOT (NewRule a)
+data NewRule a = Rule (Turn -> Update a)
+               | If (Condition Turn) (NewRule a)
+               | IfElse (Condition Turn) (NewRule a) (NewRule a)
 
-data Condition a = Condition (Piece -> Pos -> Board -> Bool)
+runRule :: NewRule a -> Turn -> a -> Maybe a
+runRule (Rule f)         t b = Just (runUpdate (f t) b)
+runRule (If c r)         t b = if runCondition c t then runRule r t b else Nothing
+runRule (IfElse c r1 r2) t b = if runCondition c t then runRule r1 t b else runRule r2 t b
+
+
+data Condition a = Condition (a -> Bool)
                  | (Condition a) `AND` (Condition a)
                  | (Condition a) `OR`  (Condition a)
-                 | (Condition a) `XOR` (Condition a)
                  | NOT (Condition a)
-                --  | IF (Condition a) Action
-                --  | IFELSE (Condition a) Action Action
+
+runCondition :: Condition a -> a -> Bool
+runCondition (Condition c) b = c b
+runCondition (c1 `AND` c2) b = runCondition c1 b && runCondition c2 b
+runCondition (c1 `OR` c2)  b = runCondition c1 b || runCondition c2 b
+runCondition (NOT c)       b = not $ runCondition c b
 
 -- rules2 :: [NewRule a]
 -- rules2 = [ If (Condition tileIsEmpty `AND` Condition (or . pattern [oneOrMore . enemyPiece, oneOrMore . alliedPiece] . allDirections))
@@ -97,13 +103,13 @@ data Condition a = Condition (Piece -> Pos -> Board -> Bool)
 -- a pi po = or . pattern [oneOrMore . enemyPiece, oneOrMore . alliedPiece] . allDirections pi po
 
 
-tileIsEmpty :: Piece -> Pos -> Board -> Bool
+tileIsEmpty :: Pos -> Board -> Bool
 tileIsEmpty = undefined
 pattern :: [[Tile] -> Bool] -> [[Tile]] -> [Bool]
 pattern = undefined
 oneOrMore :: [Bool] -> Bool
 oneOrMore = undefined
-allDirections :: Piece -> Pos -> Board -> [[Tile]]
+allDirections :: Pos -> Board -> [[Tile]]
 allDirections = undefined
 placePiece :: Piece -> Pos -> Board -> Board
 placePiece = undefined
@@ -115,6 +121,8 @@ alliedPiece :: [Tile] -> [Bool]
 alliedPiece = undefined
 to :: Piece -> Piece
 to = undefined
+lineBetween :: Turn -> Game -> [Tile]
+lineBetween = undefined
 
 instance Functor NewRule where
     fmap = undefined
