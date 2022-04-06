@@ -43,7 +43,7 @@ emptyGame = Game {
     board = undefined,
     pieces = [],
     dice = [],
-    path = [],
+    path = const,
     players = [],
     rules = [],
     endConditions = undefined,
@@ -59,7 +59,7 @@ rectBoard w h = [[Empty (Pos x y) | x <- [0..w-1]] | y <- [0..h-1]]
 
 initRectBoard :: Int -> Int -> [((Int, Int), Piece)] -> Board
 initRectBoard w h []            = [[Empty (Pos x y) | x <- [0..w-1]] | y <- [0..h-1]]
-initRectBoard w h (((x,y), pi):ps) = placePiece pi (Pos (x-1) (y-1)) $ initRectBoard w h ps
+initRectBoard w h (((x,y), pi):ps) = placePiece (Turn pi (Place (Pos (x-1) (y-1)))) $ emptyGame {board = initRectBoard w h ps}
 
 
 -- * Rules
@@ -71,14 +71,16 @@ draw :: Game -> Maybe Player
 draw _ = Nothing
 
 -- | Checks if a `Tile` at a given position is empty
-tileIsEmpty :: Piece -> Pos -> Board -> Bool
-tileIsEmpty _ pos board = empty' $ getTile board pos
+tileIsEmpty :: Turn -> Game -> Bool
+tileIsEmpty t g = empty' $ getTile (board g) (turnToPos t g)
 
 -- | A rule for checking if the tile below a tile is empty
-tileBelowIsNotEmpty :: Piece -> Pos -> Board -> Bool
-tileBelowIsNotEmpty p (Pos x y) board = do
-    let maxY = length board - 1 -- Bottom row
-    y >= maxY || not (tileIsEmpty p (Pos x (y+1)) board)
+tileBelowIsNotEmpty :: Turn -> Game -> Bool
+tileBelowIsNotEmpty t@(Turn p _) g = do
+    let maxY = length (board g) - 1 -- Bottom row
+        (Pos x y) = turnToPos t g
+    y >= maxY || not (tileIsEmpty (Turn p (Place (Pos x (y+1)))) g)
+    -- this will be buggy with Step
 
 -- | Checks if the board is full
 boardIsFull :: Game -> Bool
@@ -93,9 +95,11 @@ inARow k g = do
     where
         b = board g
 
-checkSurrPieces :: Piece -> Pos -> Board -> Bool
-checkSurrPieces p (Pos x y) b = a || c || d || e
+checkSurrPieces :: Turn -> Game -> Bool
+checkSurrPieces t@(Turn p _) g = a || c || d || e
     where
+        (Pos x y) = turnToPos t g
+        b = board g
         col = transpose b !! x
         row = b !! y
         a = checkSurrLine p (reverse (take y col)) || checkSurrLine p (drop (y+1) col)
@@ -103,9 +107,11 @@ checkSurrPieces p (Pos x y) b = a || c || d || e
         d = checkSurrLine p (getDiagonalTiles (reverse b) (Pos x (length b - 1 - y))) || checkSurrLine p (getDiagonalTiles b (Pos x y))
         e = checkSurrLine p (getDiagonalTiles (reverse (map reverse b)) (Pos (length b - 1 - x) (length b - 1 - y))) || checkSurrLine p (getDiagonalTiles (map reverse b) (Pos (length b - 1 - x) y))
 
-changeSurrLines :: Piece -> Pos -> Board -> Board
-changeSurrLines p (Pos x y) b = foldl (`changeSurrLine` p) b ts
+changeSurrLines :: Turn -> Game -> Board
+changeSurrLines t@(Turn p _) g = board $ foldl (t `changeSurrLine`) g ts
     where
+        (Pos x y) = turnToPos t g
+        b = board g
         col = transpose b !! x
         row = b !! y
         ts = [reverse (take y col),
@@ -129,9 +135,10 @@ checkSurrLine pie ts
         (PieceTile la _) = last arr
         (PieceTile ot _) = head arr
 
-changeSurrLine :: Board -> Piece -> [Tile] -> Board
-changeSurrLine b p tss@((PieceTile p2 pos):ts) | p /= p2 && checkSurrLine p tss = changeSurrLine (placePiece p pos b) p ts
-changeSurrLine b _ _  = b --error "changeSurrLine: Empty tile reached."
+changeSurrLine :: Turn -> Game -> [Tile] -> Game
+changeSurrLine t@(Turn p _) g tss@((PieceTile p2 pos):ts)
+    | p /= p2 && checkSurrLine p tss = changeSurrLine t (g {board = placePiece t g}) ts
+changeSurrLine _ g _ = g --error "changeSurrLine: Empty tile reached."
 
 pieceAtPos :: Pos -> Game -> Bool
 pieceAtPos pos g = case getTile (board g) pos of

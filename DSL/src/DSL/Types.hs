@@ -6,6 +6,8 @@ Description : A Haskell module containing all the types used in the DSL
 module DSL.Types (
     Game (..),
     Rule (..),
+    Turn (..),
+    Action (..),
     Pos (..),
     EndCondition (..),
     Player (..),
@@ -24,7 +26,7 @@ data Game = Game
         board         :: Board,
         pieces        :: [Piece],
         dice          :: [Die],
-        path          :: Path,
+        path          :: Pos -> Int -> Pos,
         players       :: [Player],
         rules         :: [Rule],
         endConditions :: [EndCondition],
@@ -45,21 +47,20 @@ data Game = Game
 --         dispFunction  :: Game -> IO ()
 --     }
 
-data Move = Move
+data Turn = Turn
     {
         piece  :: Piece,
-        pos    :: Pos--,
-        -- moveTo :: Pos,
-        -- steps  :: Int
+        action :: Action
     }
+
+data Action = Place Pos
+            | Move Pos Pos
+            | Step Pos Int
 
 -- | A rule object with a function which has to be fulfilled in
 --   order to be able to place a piece on the board.
-data Rule = PlaceRule     (Piece -> Pos -> Board -> Bool)
-          | MoveRule      (Piece -> Pos -> Pos -> Board -> Bool)
-          | MovePathRule  (Piece -> Pos -> Int -> Path -> Board -> Bool)
-          | AutomaticMove (Pos -> Pos -> Board -> Board)
-          | UpdateRule    (Piece -> Pos -> Board -> Board)
+data Rule = TurnRule      (Turn -> Game -> Bool)
+          | UpdateRule    (Turn -> Game -> Board)
 
 
 data Update a = Update (Piece -> Pos -> Board -> Board)
@@ -68,7 +69,7 @@ data Update a = Update (Piece -> Pos -> Board -> Board)
 data NewRule a = Rule (Update a)
                | If (Condition a) (NewRule a)
                | IfElse (Condition a) (NewRule a) (NewRule a)
-               | PlaceIf (Condition a) (NewRule a) Move
+               | PlaceIf (Condition a) (NewRule a) Turn
 
             --    | NewPlaceRule (Game -> Move -> Bool) a
                -- | Condition (NewRule a)
@@ -84,16 +85,16 @@ data Condition a = Condition (Piece -> Pos -> Board -> Bool)
                 --  | IF (Condition a) Action
                 --  | IFELSE (Condition a) Action Action
 
-rules2 :: [NewRule a]
-rules2 = [ If (Condition tileIsEmpty `AND` Condition (or . pattern [oneOrMore . enemyPiece, oneOrMore . alliedPiece] . allDirections))
-           (Rule (Update placePiece `COMBINE` Update (change to (allDirections (pattern [oneOrMore enemyPiece, oneOrMore alliedPiece])))))
-        ]
+-- rules2 :: [NewRule a]
+-- rules2 = [ If (Condition tileIsEmpty `AND` Condition (or . pattern [oneOrMore . enemyPiece, oneOrMore . alliedPiece] . allDirections))
+--            (Rule (Update placePiece `COMBINE` Update (change to (allDirections (pattern [oneOrMore enemyPiece, oneOrMore alliedPiece])))))
+--         ]
 
-d :: Piece -> Bool
-d = or . pattern [oneOrMore . enemyPiece, oneOrMore . alliedPiece] . allDirections
+-- d :: Piece -> Bool
+-- d = or . pattern [oneOrMore . enemyPiece, oneOrMore . alliedPiece] . allDirections
 
-a :: Piece -> Pos -> Board -> Bool
-a pi po = or . pattern [oneOrMore . enemyPiece, oneOrMore . alliedPiece] . allDirections pi po
+-- a :: Piece -> Pos -> Board -> Bool
+-- a pi po = or . pattern [oneOrMore . enemyPiece, oneOrMore . alliedPiece] . allDirections pi po
 
 
 tileIsEmpty :: Piece -> Pos -> Board -> Bool

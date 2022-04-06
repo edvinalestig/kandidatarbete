@@ -21,7 +21,7 @@ tictactoe = emptyGame {
         Player "B"
     ],
     rules = [
-        PlaceRule tileIsEmpty,
+        TurnRule tileIsEmpty,
         UpdateRule placePiece
     ],
     endConditions = [
@@ -45,7 +45,7 @@ tictactoeVariant x y z = emptyGame {
         Player "C"
     ],
     rules = [
-        PlaceRule tileIsEmpty,
+        TurnRule tileIsEmpty,
         UpdateRule placePiece
     ],
     endConditions = [
@@ -66,8 +66,8 @@ connectFour = emptyGame {
         Player "B"
     ],
     rules = [
-        PlaceRule tileIsEmpty,
-        PlaceRule tileBelowIsNotEmpty,
+        TurnRule tileIsEmpty,
+        TurnRule tileBelowIsNotEmpty,
         UpdateRule placePiece
     ],
     endConditions = [
@@ -93,8 +93,8 @@ othello = emptyGame {
         Player "B"
     ],
     rules = [
-        PlaceRule tileIsEmpty,
-        PlaceRule checkSurrPieces,
+        TurnRule tileIsEmpty,
+        TurnRule checkSurrPieces,
         UpdateRule placePiece,
         UpdateRule changeSurrLines
     ],
@@ -124,8 +124,8 @@ othello2 = emptyGame {
         Player "B"
     ],
     rules = [
-        PlaceRule tileIsEmpty,
-        PlaceRule checkSurrPieces,
+        TurnRule tileIsEmpty,
+        TurnRule checkSurrPieces,
         UpdateRule placePiece,
         UpdateRule changeSurrLines
     ],
@@ -156,7 +156,7 @@ snakesAndLadders x = emptyGame {
         Player "D"
     ],
     rules = [
-        PlaceRule tileIsEmpty
+        TurnRule tileIsEmpty
         -- MovePathRule (dice 6) path,
         -- -- Ladders
         -- AutomaticMove (1, 9) (2, 6),

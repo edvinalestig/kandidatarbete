@@ -55,11 +55,11 @@ playGame game = do
 -- | Plays one turn
 playTurn :: Game -> Piece -> Pos -> (Game, Maybe Player)
 playTurn game piece position =
-    if not $ isValidInput piece game position then
+    if not $ isValidInput turn game then
         (game, Nothing)
     else do
-        let r'       = [UpdateRule f | (UpdateRule f) <- rules game]
-            newBoard = foldl (\b (UpdateRule x) -> x piece position b) (board game) r'
+        let r'       = [f | (UpdateRule f) <- rules game]
+            newBoard = foldl (\b f -> f turn game) (board game) r'
             endCon   = filter ((== True) . snd) [(p, f (game {board = newBoard})) | (p,f) <- endConditions game]
             newState = game {players = cyclePlayers $ players game, board = newBoard}
             
@@ -67,6 +67,8 @@ playTurn game piece position =
             (newState {gameEnded = True}, (fst . head) endCon game {board = newBoard})
         else
             (newState {gameEnded = False}, Nothing)
+    where
+        turn = Turn {piece = piece, action = Place position}
 
 
 -- | Returns `True` if no player has any valid moves, `False` otherwise
@@ -75,21 +77,22 @@ noPlayerHasMoves g = not $ any (playerHasMoves g) (players g)
 
 -- | Determines if a given player has any legal moves with regards to the rules and a board state
 playerHasMoves :: Game -> Player -> Bool
-playerHasMoves g p = playerHasMoves' (filterPieces p (pieces g)) (rules g) (board g)
+playerHasMoves g p = playerHasMoves' (filterPieces p (pieces g)) g
     where
-        playerHasMoves' :: [Piece] -> [Rule] -> Board -> Bool
-        playerHasMoves' []     rs b = False
-        playerHasMoves' (p:ps) rs b = pieceHasMoves p rs b (concat b) || playerHasMoves' ps rs b
+        playerHasMoves' :: [Piece] -> Game -> Bool
+        playerHasMoves' []     g = False
+        playerHasMoves' (p:ps) g = pieceHasMoves p g (concat (board g)) || playerHasMoves' ps g
 
 -- | Determines if a given piece has any legal moves with regards to the rules and a board state
-pieceHasMoves :: Piece -> [Rule] -> Board -> [Tile] -> Bool
-pieceHasMoves _ _ _ [] = False
-pieceHasMoves _ [] _ _ = False
-pieceHasMoves p rs b (t:ts) = inputs rs p t || pieceHasMoves p rs b ts
-    where
-        inputs :: [Rule] -> Piece -> Tile -> Bool
-        inputs rs p t = all (\f -> f p (getPos t) b) r'
-        r' = [f | (PlaceRule f) <- rs]
+pieceHasMoves :: Piece -> Game -> [Tile] -> Bool
+pieceHasMoves _ _ [] = False 
+pieceHasMoves p g (t:ts) | null (rules g) = False
+                         | otherwise = inputs p t || pieceHasMoves p g ts
+        where
+        inputs :: Piece -> Tile -> Bool
+        inputs p t = all (\f -> f (turn t) g) r'
+        r' = [f | (TurnRule f) <- rules g]
+        turn t = Turn {piece = p, action = Place (getPos t)}
 
 -- | Given a string, check if it is equal "q" and interupt the game by throwing an error based on that.
 --   If the string is not equal to "q", this function does nothing
@@ -119,9 +122,9 @@ getValidInput p g = do
         else return $ Pos (x - 1) (y - 1)
 
 -- | Checks whether or not you can place a piece at a specific location
-isValidInput :: Piece -> Game -> Pos -> Bool
-isValidInput piece game pos = all (\(PlaceRule f)  -> f piece pos (board game)) 
-                                  [PlaceRule f | PlaceRule f <- rules game]
+isValidInput :: Turn -> Game -> Bool
+isValidInput turn game = all (\f  -> f turn game) 
+                             [f | TurnRule f <- rules game]
 
 
 -- | Asks the user for which piece they want to place
