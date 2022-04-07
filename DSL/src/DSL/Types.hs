@@ -6,6 +6,9 @@ Description : A Haskell module containing all the types used in the DSL
 module DSL.Types (
     Game (..),
     Rule (..),
+    NewRule (..),
+    Update (..),
+    Condition (..),
     Turn (..),
     Action (..),
     Pos (..),
@@ -14,6 +17,9 @@ module DSL.Types (
     Piece (..),
     Tile (..),
     Board,
+    runUpdate,
+    runRule,
+    runCondition,
     Die (..)
 ) where
 
@@ -28,8 +34,9 @@ data Game = Game
         dice          :: [Die],
         path          :: Pos -> Int -> Pos,
         players       :: [Player],
-        rules         :: [Rule],
-        endConditions :: [EndCondition],
+        rules         :: [NewRule],
+        endConditions :: [NewRule],
+        winner        :: Maybe Player,
         gameEnded     :: Bool,
         dispFunction  :: Game -> IO ()
     }
@@ -63,33 +70,34 @@ data Rule = TurnRule      (Turn -> Game -> Bool)
           | UpdateRule    (Turn -> Game -> Board)
 
 
-data Update a = Update (a -> a)
-              | (Update a) `COMBINE` (Update a)
+data Update = Update (Game -> Game)
+            | Update `COMBINE` Update
 
-runUpdate :: Update a -> a -> a
-runUpdate (Update f) b    = f b
+runUpdate :: Update -> Game -> Game
+runUpdate (Update f) b        = f b
 runUpdate (u1 `COMBINE` u2) b = runUpdate u2 (runUpdate u1 b)
 
-data NewRule a = Rule (Turn -> Update a)
-               | If (Condition Turn) (NewRule a)
-               | IfElse (Condition Turn) (NewRule a) (NewRule a)
+data NewRule = Rule (Turn -> Update)
+             | If (Condition Turn) NewRule
+             | IfElse (Condition Turn) NewRule NewRule
+            --  | NewRule `SEQ` NewRule
 
-runRule :: NewRule a -> Turn -> a -> Maybe a
-runRule (Rule f)         t b = Just (runUpdate (f t) b)
-runRule (If c r)         t b = if runCondition c t then runRule r t b else Nothing
-runRule (IfElse c r1 r2) t b = if runCondition c t then runRule r1 t b else runRule r2 t b
+runRule :: NewRule -> Turn -> Game -> Maybe Game
+runRule (Rule f)         t g = Just (runUpdate (f t) g)
+runRule (If c r)         t g = if runCondition c t g then runRule r t g else Nothing
+runRule (IfElse c r1 r2) t g = if runCondition c t g then runRule r1 t g else runRule r2 t g
+-- runRule (r1 `SEQ` r2)    t g = runRule r2 t g (runRule r1 t g)
 
-
-data Condition a = Condition (a -> Bool)
+data Condition a = Condition (a -> Game -> Bool)
                  | (Condition a) `AND` (Condition a)
                  | (Condition a) `OR`  (Condition a)
                  | NOT (Condition a)
 
-runCondition :: Condition a -> a -> Bool
-runCondition (Condition c) b = c b
-runCondition (c1 `AND` c2) b = runCondition c1 b && runCondition c2 b
-runCondition (c1 `OR` c2)  b = runCondition c1 b || runCondition c2 b
-runCondition (NOT c)       b = not $ runCondition c b
+runCondition :: Condition t -> t -> Game -> Bool
+runCondition (Condition c) t g = c t g
+runCondition (c1 `AND` c2) t g = runCondition c1 t g && runCondition c2 t g
+runCondition (c1 `OR` c2)  t g = runCondition c1 t g || runCondition c2 t g
+runCondition (NOT c)       t g = not $ runCondition c t g
 
 -- rules2 :: [NewRule a]
 -- rules2 = [ If (Condition tileIsEmpty `AND` Condition (or . pattern [oneOrMore . enemyPiece, oneOrMore . alliedPiece] . allDirections))
@@ -124,16 +132,16 @@ to = undefined
 lineBetween :: Turn -> Game -> [Tile]
 lineBetween = undefined
 
-instance Functor NewRule where
-    fmap = undefined
+-- instance Functor NewRule where
+--     fmap = undefined
 
-instance Applicative NewRule where
-    pure  = return
-    (<*>) = undefined
+-- instance Applicative NewRule where
+--     pure  = return
+--     (<*>) = undefined
 
-instance Monad NewRule where
-    return = undefined
-    (>>=)  = undefined
+-- instance Monad NewRule where
+--     return = undefined
+--     (>>=)  = undefined
 
 -- SCHACK BONDE : IF ((FORWARD 1 AND EMPTYTILE) OR ((FORWARD 1 AND (LEFT 1 OR RIGHT 1)) AND ENEMYPIECE)) >>= (MOVEPIECE)
 -- bonde:   IFELSE (FORWARD 1 AND EMPTYTILE) 
@@ -168,7 +176,7 @@ type Path = [Pos]
 
 -- | A record containing conditions to be met for the game to end.
 --   It can have multiple functions for draws and wins. 
-type EndCondition = (Game -> Maybe Player, Game -> Bool)
+type EndCondition = (Game -> Maybe Player, NewRule) -- Game -> Bool
 
 -- | A player object with a name
 newtype Player = Player String

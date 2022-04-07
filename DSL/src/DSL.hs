@@ -21,6 +21,7 @@ import Control.Monad.Random (evalRandIO, MonadRandom (getRandomR))
 import Data.Bifunctor (Bifunctor(bimap))
 import Data.List.Split (chunksOf, splitOn)
 import Text.Read (readMaybe)
+import Data.Maybe ( isJust )
 
 -- | Plays a game
 playGame :: Game -> IO ()
@@ -36,7 +37,7 @@ playGame game = do
         piece <- getValidPiece currPlayer (pieces game)
         input <- getValidInput piece game
 
-        let (newGame, winner) = playTurn game piece input
+        let newGame = playTurn game piece input
 
         -- Check if nothing happened on the board to give feedback to the user
         -- Todo: Determine if this is the way to do it, now it assumes that all moves include changes to the board
@@ -46,34 +47,41 @@ playGame game = do
 
         else if gameEnded newGame then
             (dispFunction game) newGame >>
-            case winner of
+            case winner newGame of
                 Nothing -> putStrLn "Draw!"
                 Just p -> putStrLn $ "Player " ++ show p ++ " has won!"
         else
             playGame newGame
 
 -- | Plays one turn
-playTurn :: Game -> Piece -> Pos -> (Game, Maybe Player)
+playTurn :: Game -> Piece -> Pos -> Game
 playTurn game piece position =
     if not $ isValidInput turn game then
-        (game, Nothing)
+        game
     else do
-        let r'       = [f | (UpdateRule f) <- rules game]
-            newBoard = foldl (\b f -> f turn game) (board game) r'
-            endCon   = filter ((== True) . snd) [(p, f (game {board = newBoard})) | (p,f) <- endConditions game]
-            newState = game {players = cyclePlayers $ players game, board = newBoard}
-            
-        if not (null endCon) then
-            (newState {gameEnded = True}, (fst . head) endCon game {board = newBoard})
-        else
-            (newState {gameEnded = False}, Nothing)
+        let newGame = foldl (\b f -> runRule f turn game) (Just game) (rules game)
+
+        postPlayTurn turn newGame
     where
         turn = Turn {piece = piece, action = Place position}
 
+postPlayTurn :: Turn -> Maybe Game -> Game
+postPlayTurn _    Nothing     = error "No rules could be applied"
+postPlayTurn turn (Just game) = do
+    let newGame = foldl (\(Just g) f -> runRule f turn g) (Just game) (endConditions game)
+    case newGame of
+      Nothing -> game {players = cyclePlayers $ players game}
+      Just ga -> ga {players = cyclePlayers $ players ga}
+        
+
 
 -- | Returns `True` if no player has any valid moves, `False` otherwise
-noPlayerHasMoves :: Game -> Bool
-noPlayerHasMoves g = not $ any (playerHasMoves g) (players g)
+noPlayerHasMoves :: Condition Turn
+noPlayerHasMoves = Condition _noPlayerHasMoves
+
+-- | Returns `True` if no player has any valid moves, `False` otherwise
+_noPlayerHasMoves :: Turn -> Game -> Bool
+_noPlayerHasMoves _ g = not $ any (playerHasMoves g) (players g)
 
 -- | Determines if a given player has any legal moves with regards to the rules and a board state
 playerHasMoves :: Game -> Player -> Bool
@@ -90,14 +98,13 @@ pieceHasMoves p g (t:ts) | null (rules g) = False
                          | otherwise = inputs p t || pieceHasMoves p g ts
         where
         inputs :: Piece -> Tile -> Bool
-        inputs p t = all (\f -> f (turn t) g) r'
-        r' = [f | (TurnRule f) <- rules g]
+        inputs p t = all (\f -> isJust $ runRule f (turn t) g) (rules g)
         turn t = Turn {piece = p, action = Place (getPos t)}
 
 -- | Given a string, check if it is equal "q" and interupt the game by throwing an error based on that.
 --   If the string is not equal to "q", this function does nothing
 checkInterupt :: String -> IO ()
-checkInterupt s | s == "q" = error "Game interupted" 
+checkInterupt s | s == "q" = error "Game interrupted" 
                 | otherwise = return ()
 
 -- | Gets an input from the user and determines whether or not it is valid
@@ -123,8 +130,7 @@ getValidInput p g = do
 
 -- | Checks whether or not you can place a piece at a specific location
 isValidInput :: Turn -> Game -> Bool
-isValidInput turn game = all (\f  -> f turn game) 
-                             [f | TurnRule f <- rules game]
+isValidInput turn game = all (\f -> isJust $ runRule f turn game) (rules game)
 
 
 -- | Asks the user for which piece they want to place

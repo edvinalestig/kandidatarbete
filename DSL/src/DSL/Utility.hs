@@ -4,6 +4,7 @@ Description : A Haskell module containing various utility functions
 -}
 module DSL.Utility (
     placePiece,
+    _placePiece,
     getTile,
     getPlayer,
     getPos,
@@ -15,11 +16,19 @@ module DSL.Utility (
 import DSL.Types
 
 -- | Places a piece in a certain position on the board
-placePiece :: Turn -> Game -> Board
-placePiece t@(Turn p _) g = replaceAtIndex y newRow (board g)
+placePiece :: NewRule
+placePiece = Rule placePiece'
+    where
+        placePiece' :: Turn -> Update
+        placePiece' t = Update $ _placePiece t
+
+-- | Places a piece in a certain position on the board
+_placePiece :: Turn -> Game -> Game
+_placePiece t@(Turn p _) g = g {board = replaceAtIndex y newRow (board g)}
     where (Pos x y) = turnToPos t g
           tile = PieceTile p (Pos x y)
           newRow = replaceAtIndex x tile (board g !! y)
+
 
 getTile :: Board -> Pos -> Tile
 getTile b (Pos x y) = (b !! y) !! x

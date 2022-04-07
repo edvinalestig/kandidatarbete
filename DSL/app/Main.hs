@@ -21,12 +21,11 @@ tictactoe = emptyGame {
         Player "B"
     ],
     rules = [
-        TurnRule tileIsEmpty,
-        UpdateRule placePiece
+        If (tileIsEmpty) placePiece
     ],
     endConditions = [
-        (currentPlayer, inARow 3),
-        (draw, boardIsFull)
+        If (inARow 3) currentPlayerWins,
+        If (boardIsFull) gameDraw
     ]
 }
 
@@ -45,12 +44,11 @@ tictactoeVariant x y z = emptyGame {
         Player "C"
     ],
     rules = [
-        TurnRule tileIsEmpty,
-        UpdateRule placePiece
+        If (tileIsEmpty) placePiece
     ],
     endConditions = [
-        (currentPlayer, inARow z),
-        (draw, boardIsFull)
+        If (inARow z) currentPlayerWins,
+        If (boardIsFull) gameDraw
     ]
 }
 
@@ -66,13 +64,11 @@ connectFour = emptyGame {
         Player "B"
     ],
     rules = [
-        TurnRule tileIsEmpty,
-        TurnRule tileBelowIsNotEmpty,
-        UpdateRule placePiece
+        If (tileIsEmpty `AND` tileBelowIsNotEmpty) placePiece
     ],
     endConditions = [
-        (currentPlayer, inARow 4),
-        (draw, boardIsFull)
+        If (inARow 4) currentPlayerWins,
+        If (boardIsFull) gameDraw
     ]
 }
 
@@ -93,27 +89,26 @@ othello = emptyGame {
         Player "B"
     ],
     rules = [
-        TurnRule tileIsEmpty,
-        TurnRule checkSurrPieces,
-        UpdateRule placePiece,
-        UpdateRule changeSurrLines
+        -- If (tileIsEmpty `AND` checkSurrPieces) $ Do (placePiece  `COMBINE` changeSurrLines)
+        If (tileIsEmpty `AND` checkSurrPieces) placePiece,
+        If (tileIsEmpty `AND` checkSurrPieces) changeSurrLines
     ],
     endConditions = [
-        (playerWithMostPieces, noPlayerHasMoves)
+        If (noPlayerHasMoves) playerWithMostPiecesWins
     ]
 }
 
 othello2 :: Game
 othello2 = emptyGame {
     board = initRectBoard 3 3 [
-        ((1,2), Piece "O" (Player "A")),
-        ((1,1), Piece "O" (Player "A")),
-        ((2,1), Piece "O" (Player "A")),
-        ((3,1), Piece "O" (Player "A")),
-        ((3,2), Piece "O" (Player "A")),
-        ((1,3), Piece "X" (Player "B")),
-        ((2,3), Piece "X" (Player "B")),
-        ((3,3), Piece "X" (Player "B"))
+        ((1, 2), Piece "O" (Player "A")),
+        ((1, 1), Piece "O" (Player "A")),
+        ((2, 1), Piece "O" (Player "A")),
+        ((3, 1), Piece "O" (Player "A")),
+        ((3, 2), Piece "O" (Player "A")),
+        ((1, 3), Piece "X" (Player "B")),
+        ((2, 3), Piece "X" (Player "B")),
+        ((3, 3), Piece "X" (Player "B"))
     ],
     pieces = [
         Piece "O" (Player "A"),
@@ -124,13 +119,12 @@ othello2 = emptyGame {
         Player "B"
     ],
     rules = [
-        TurnRule tileIsEmpty,
-        TurnRule checkSurrPieces,
-        UpdateRule placePiece,
-        UpdateRule changeSurrLines
+        -- If (tileIsEmpty `AND` checkSurrPieces) (placePiece `COMBINE` changeSurrLines)
+        If (tileIsEmpty `AND` checkSurrPieces) placePiece,
+        If (tileIsEmpty `AND` checkSurrPieces) changeSurrLines
     ],
     endConditions = [
-        (playerWithMostPieces, noPlayerHasMoves)
+        If (noPlayerHasMoves) playerWithMostPiecesWins
     ]
 }
 
@@ -156,7 +150,6 @@ snakesAndLadders x = emptyGame {
         Player "D"
     ],
     rules = [
-        TurnRule tileIsEmpty
         -- MovePathRule (dice 6) path,
         -- -- Ladders
         -- AutomaticMove (1, 9) (2, 6),
@@ -177,6 +170,6 @@ snakesAndLadders x = emptyGame {
         -- AutomaticMove (8, 6) (9, 9)
     ],
     endConditions = [
-        (currentPlayer, pieceAtPos (Pos 1 1))
+        -- (currentPlayer, pieceAtPos (Pos 1 1))
     ]
 }

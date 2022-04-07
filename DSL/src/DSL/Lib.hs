@@ -11,13 +11,16 @@ module DSL.Lib (
     rectBoard,
     initRectBoard,
     -- * Rules
+    currentPlayerWins,
     currentPlayer,
-    draw,
+    gameDraw,
+    _boardIsFull,
     tileIsEmpty,
     tileBelowIsNotEmpty,
     boardIsFull,
     playerWithMostPieces,
     playersWithMostPieces,
+    playerWithMostPiecesWins,
     checkSurrPieces,
     changeSurrLines,
     getDiagonalTiles,
@@ -46,7 +49,8 @@ emptyGame = Game {
     path = const,
     players = [],
     rules = [],
-    endConditions = undefined,
+    endConditions = [],
+    winner = Nothing,
     gameEnded = False,
     dispFunction = prettyPrint
 }
@@ -59,44 +63,81 @@ rectBoard w h = [[Empty (Pos x y) | x <- [0..w-1]] | y <- [0..h-1]]
 
 initRectBoard :: Int -> Int -> [((Int, Int), Piece)] -> Board
 initRectBoard w h []            = [[Empty (Pos x y) | x <- [0..w-1]] | y <- [0..h-1]]
-initRectBoard w h (((x,y), pi):ps) = placePiece (Turn pi (Place (Pos (x-1) (y-1)))) $ emptyGame {board = initRectBoard w h ps}
+initRectBoard w h (((x,y), pi):ps) = board $ _placePiece (Turn pi (Place (Pos (x-1) (y-1)))) $ emptyGame {board = initRectBoard w h ps}
 
 
 -- * Rules
 
+gameDraw :: NewRule
+gameDraw = Rule draw
+    where
+        draw :: Turn -> Update
+        draw _ = Update makeDraw
+
+makeDraw :: Game -> Game
+makeDraw g | gameEnded g = g
+           | otherwise   = g {gameEnded = True, winner = Nothing}
+
+currentPlayerWins :: NewRule
+currentPlayerWins = Rule win
+    where
+        win :: Turn -> Update
+        win _ = Update _currentPlayerWins
+
+_currentPlayerWins :: Game -> Game
+_currentPlayerWins g | gameEnded g = g
+                     | otherwise   = g {gameEnded = True, winner = currentPlayer g}
+
 currentPlayer :: Game -> Maybe Player
 currentPlayer g = Just $ head (players g)
 
-draw :: Game -> Maybe Player
-draw _ = Nothing
 
 -- | Checks if a `Tile` at a given position is empty
-tileIsEmpty :: Turn -> Game -> Bool
-tileIsEmpty t g = empty' $ getTile (board g) (turnToPos t g)
+tileIsEmpty :: Condition Turn
+tileIsEmpty = Condition _tileIsEmpty
+
+_tileIsEmpty :: Turn -> Game -> Bool
+_tileIsEmpty t g = empty' (turnGameToTile t g)
+
+
+turnGameToTile :: Turn -> Game -> Tile
+turnGameToTile t g = getTile (board g) (turnToPos t g)
 
 -- | A rule for checking if the tile below a tile is empty
-tileBelowIsNotEmpty :: Turn -> Game -> Bool
-tileBelowIsNotEmpty t@(Turn p _) g = do
+tileBelowIsNotEmpty :: Condition Turn
+tileBelowIsNotEmpty = Condition _tileBelowIsNotEmpty
+    
+_tileBelowIsNotEmpty :: Turn -> Game -> Bool
+_tileBelowIsNotEmpty t@(Turn p _) g = do
     let maxY = length (board g) - 1 -- Bottom row
         (Pos x y) = turnToPos t g
-    y >= maxY || not (tileIsEmpty (Turn p (Place (Pos x (y+1)))) g)
-    -- this will be buggy with Step
+    y >= maxY || not (_tileIsEmpty (Turn p (Place (Pos x (y+1)))) g)
+        -- this will be buggy with Step
 
 -- | Checks if the board is full
-boardIsFull :: Game -> Bool
-boardIsFull g = " " `notElem` concatMap (map show) (board g)
+boardIsFull :: Condition a
+boardIsFull = Condition _boardIsFull
+
+_boardIsFull :: a -> Game -> Bool
+_boardIsFull _ g = " " `notElem` concatMap (map show) (board g)
 
 -- | Checks if the board contains a given number of pieces in a row in any 
 --   orientation. (Vertical, horizontal, diagonal)
-inARow :: Int -> Game -> Bool
-inARow k g = do
+inARow :: Int -> Condition Turn
+inARow k = Condition $ _inARow k
+
+_inARow :: Int -> Turn -> Game -> Bool
+_inARow k _ g = do
     let everything = getRows b k ++ getColumns b k ++ getDiagonals b k
     any allEQ everything
     where
         b = board g
 
-checkSurrPieces :: Turn -> Game -> Bool
-checkSurrPieces t@(Turn p _) g = a || c || d || e
+checkSurrPieces :: Condition Turn
+checkSurrPieces = Condition _checkSurrPieces
+
+_checkSurrPieces :: Turn -> Game -> Bool
+_checkSurrPieces t@(Turn p _) g = a || c || d || e
     where
         (Pos x y) = turnToPos t g
         b = board g
@@ -107,8 +148,15 @@ checkSurrPieces t@(Turn p _) g = a || c || d || e
         d = checkSurrLine p (getDiagonalTiles (reverse b) (Pos x (length b - 1 - y))) || checkSurrLine p (getDiagonalTiles b (Pos x y))
         e = checkSurrLine p (getDiagonalTiles (reverse (map reverse b)) (Pos (length b - 1 - x) (length b - 1 - y))) || checkSurrLine p (getDiagonalTiles (map reverse b) (Pos (length b - 1 - x) y))
 
-changeSurrLines :: Turn -> Game -> Board
-changeSurrLines t@(Turn p _) g = board $ foldl (t `changeSurrLine`) g ts
+
+changeSurrLines :: NewRule
+changeSurrLines = Rule update
+    where
+        update :: Turn -> Update
+        update t = Update (_changeSurrLines t)
+
+_changeSurrLines :: Turn -> Game -> Game
+_changeSurrLines t@(Turn p _) g = foldl (t `changeSurrLine`) g ts
     where
         (Pos x y) = turnToPos t g
         b = board g
@@ -137,7 +185,7 @@ checkSurrLine pie ts
 
 changeSurrLine :: Turn -> Game -> [Tile] -> Game
 changeSurrLine t@(Turn p _) g tss@((PieceTile p2 pos):ts)
-    | p /= p2 && checkSurrLine p tss = changeSurrLine t (g {board = placePiece t g}) ts
+    | p /= p2 && checkSurrLine p tss = changeSurrLine t (_placePiece t g) ts
 changeSurrLine _ g _ = g --error "changeSurrLine: Empty tile reached."
 
 pieceAtPos :: Pos -> Game -> Bool
@@ -163,6 +211,13 @@ eqTile _ _ = False
 countPiece :: Piece -> Board -> Int
 countPiece p b = length $ filter (samePiece p) (concat b)
 
+playerWithMostPiecesWins :: NewRule
+playerWithMostPiecesWins = Rule update
+    where
+        update _ = Update _playerWithMostPiecesWins
+
+_playerWithMostPiecesWins :: Game -> Game
+_playerWithMostPiecesWins g = g {winner = playerWithMostPieces g}
 
 playerWithMostPieces :: Game -> Maybe Player
 playerWithMostPieces game | length ps == 1 = Just $ head ps
