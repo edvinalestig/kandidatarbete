@@ -156,7 +156,7 @@ changeSurrLines = Rule update
         update t = Update (_changeSurrLines t)
 
 _changeSurrLines :: Turn -> Game -> Game
-_changeSurrLines t@(Turn p _) g = foldl (t `changeSurrLine`) g ts
+_changeSurrLines t@(Turn p _) g = foldl (changeSurrLine t) g ts
     where
         (Pos x y) = turnToPos t g
         b = board g
@@ -185,7 +185,7 @@ checkSurrLine pie ts
 
 changeSurrLine :: Turn -> Game -> [Tile] -> Game
 changeSurrLine t@(Turn p _) g tss@((PieceTile p2 pos):ts)
-    | p /= p2 && checkSurrLine p tss = changeSurrLine t (_placePiece t g) ts
+    | p /= p2 && checkSurrLine p tss = changeSurrLine t (_placePiece (t {action = Place pos}) g) ts
 changeSurrLine _ g _ = g --error "changeSurrLine: Empty tile reached."
 
 pieceAtPos :: Pos -> Game -> Bool

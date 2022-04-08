@@ -74,19 +74,20 @@ data Update = Update (Game -> Game)
             | Update `COMBINE` Update
 
 runUpdate :: Update -> Game -> Game
-runUpdate (Update f) b        = f b
-runUpdate (u1 `COMBINE` u2) b = runUpdate u2 (runUpdate u1 b)
+runUpdate (Update f) g        = f g
+runUpdate (u1 `COMBINE` u2) g = runUpdate u2 (runUpdate u1 g)
 
 data NewRule = Rule (Turn -> Update)
              | If (Condition Turn) NewRule
              | IfElse (Condition Turn) NewRule NewRule
-            --  | NewRule `SEQ` NewRule
+             | NewRule `SEQ` NewRule
 
 runRule :: NewRule -> Turn -> Game -> Maybe Game
 runRule (Rule f)         t g = Just (runUpdate (f t) g)
 runRule (If c r)         t g = if runCondition c t g then runRule r t g else Nothing
 runRule (IfElse c r1 r2) t g = if runCondition c t g then runRule r1 t g else runRule r2 t g
--- runRule (r1 `SEQ` r2)    t g = runRule r2 t g (runRule r1 t g)
+runRule (r1 `SEQ` r2)    t g = runRule r1 t g >>= runRule r2 t -- equal to: if isJust (runRule r1 t g) then runRule r2 t (fromJust iter1) else Nothing
+
 
 data Condition a = Condition (a -> Game -> Bool)
                  | (Condition a) `AND` (Condition a)

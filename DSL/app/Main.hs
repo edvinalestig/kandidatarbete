@@ -90,8 +90,7 @@ othello = emptyGame {
     ],
     rules = [
         -- If (tileIsEmpty `AND` checkSurrPieces) $ Do (placePiece  `COMBINE` changeSurrLines)
-        If (tileIsEmpty `AND` checkSurrPieces) placePiece,
-        If (tileIsEmpty `AND` checkSurrPieces) changeSurrLines
+        If (tileIsEmpty `AND` checkSurrPieces) (placePiece `SEQ` changeSurrLines)
     ],
     endConditions = [
         If (noPlayerHasMoves) playerWithMostPiecesWins
@@ -120,8 +119,7 @@ othello2 = emptyGame {
     ],
     rules = [
         -- If (tileIsEmpty `AND` checkSurrPieces) (placePiece `COMBINE` changeSurrLines)
-        If (tileIsEmpty `AND` checkSurrPieces) placePiece,
-        If (tileIsEmpty `AND` checkSurrPieces) changeSurrLines
+        If (tileIsEmpty `AND` checkSurrPieces) placePiece `SEQ` changeSurrLines
     ],
     endConditions = [
         If (noPlayerHasMoves) playerWithMostPiecesWins
