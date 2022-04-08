@@ -17,10 +17,7 @@ import DSL.Types
 
 -- | Places a piece in a certain position on the board
 placePiece :: NewRule
-placePiece = Rule placePiece'
-    where
-        placePiece' :: Turn -> Update
-        placePiece' t = Update $ _placePiece t
+placePiece = Rule $ Update _placePiece
 
 -- | Places a piece in a certain position on the board
 _placePiece :: Turn -> Game -> Game

@@ -16,12 +16,15 @@ module DSL.Lib (
     gameDraw,
     _boardIsFull,
     tileIsEmpty,
+    placeLine,
+    allyTile,
     tileBelowIsNotEmpty,
     boardIsFull,
     playerWithMostPieces,
     playersWithMostPieces,
     playerWithMostPiecesWins,
     checkSurrPieces,
+    trueCond,
     changeSurrLines,
     getDiagonalTiles,
     inARow,
@@ -68,28 +71,50 @@ initRectBoard w h (((x,y), pi):ps) = board $ _placePiece (Turn pi (Place (Pos (x
 
 -- * Rules
 
-gameDraw :: NewRule
-gameDraw = Rule draw
-    where
-        draw :: Turn -> Update
-        draw _ = Update makeDraw
+placeLine :: (Int, Int) -> NewRule
+placeLine i = Rule $ Update $ _placeLine i
 
-makeDraw :: Game -> Game
-makeDraw g | gameEnded g = g
-           | otherwise   = g {gameEnded = True, winner = Nothing}
+-- * this is expected to only take in Place currently.
+_placeLine :: (Int, Int) -> Turn -> Game -> Game
+_placeLine (dx, dy) t@(Turn a (Place (Pos x y))) g = do
+    if x+dx >= 0 && x+dx < (length . head . board) g && y+dy >= 0 && y+dy < (length . board) g then do
+        let g' = _placePiece (t {action = Place (Pos (x+dx) (y+dy))}) g
+        _placeLine (dx, dy) (Turn a (Place (Pos (x+dx) (y+dy)))) g'
+    else do
+        g
+_placeLine _ _ g = g
+
+
+gameDraw :: NewRule
+gameDraw = Rule $ Update makeDraw
+
+makeDraw :: Turn -> Game -> Game
+makeDraw _ g | gameEnded g = g
+             | otherwise   = g {gameEnded = True, winner = Nothing}
 
 currentPlayerWins :: NewRule
-currentPlayerWins = Rule win
-    where
-        win :: Turn -> Update
-        win _ = Update _currentPlayerWins
+currentPlayerWins = Rule $ Update _currentPlayerWins
 
-_currentPlayerWins :: Game -> Game
-_currentPlayerWins g | gameEnded g = g
-                     | otherwise   = g {gameEnded = True, winner = currentPlayer g}
+_currentPlayerWins :: Turn -> Game -> Game
+_currentPlayerWins _ g | gameEnded g = g
+                       | otherwise   = g {gameEnded = True, winner = currentPlayer g}
 
 currentPlayer :: Game -> Maybe Player
 currentPlayer g = Just $ head (players g)
+
+allyTile :: Condition Turn 
+allyTile = Condition _allyTile
+
+_allyTile :: Turn -> Game -> Bool
+_allyTile t@(Turn p _) g = do
+    case getTile (board g) pos of
+        (PieceTile p' _) -> p == p'
+        _                -> False
+    where
+        pos = turnToPos t g
+
+trueCond :: Condition Turn
+trueCond = Condition (\t g -> True)
 
 
 -- | Checks if a `Tile` at a given position is empty
@@ -150,10 +175,7 @@ _checkSurrPieces t@(Turn p _) g = a || c || d || e
 
 
 changeSurrLines :: NewRule
-changeSurrLines = Rule update
-    where
-        update :: Turn -> Update
-        update t = Update (_changeSurrLines t)
+changeSurrLines = Rule $ Update _changeSurrLines
 
 _changeSurrLines :: Turn -> Game -> Game
 _changeSurrLines t@(Turn p _) g = foldl (changeSurrLine t) g ts
@@ -212,12 +234,10 @@ countPiece :: Piece -> Board -> Int
 countPiece p b = length $ filter (samePiece p) (concat b)
 
 playerWithMostPiecesWins :: NewRule
-playerWithMostPiecesWins = Rule update
-    where
-        update _ = Update _playerWithMostPiecesWins
+playerWithMostPiecesWins = Rule $ Update _playerWithMostPiecesWins
 
-_playerWithMostPiecesWins :: Game -> Game
-_playerWithMostPiecesWins g = g {winner = playerWithMostPieces g}
+_playerWithMostPiecesWins :: Turn -> Game -> Game
+_playerWithMostPiecesWins _ g = g {winner = playerWithMostPieces g}
 
 playerWithMostPieces :: Game -> Maybe Player
 playerWithMostPieces game | length ps == 1 = Just $ head ps

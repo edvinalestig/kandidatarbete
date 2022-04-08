@@ -89,8 +89,7 @@ othello = emptyGame {
         Player "B"
     ],
     rules = [
-        -- If (tileIsEmpty `AND` checkSurrPieces) $ Do (placePiece  `COMBINE` changeSurrLines)
-        If (tileIsEmpty `AND` checkSurrPieces) (placePiece `SEQ` changeSurrLines)
+        If (tileIsEmpty `AND` checkSurrPieces) (placePiece >>> changeSurrLines)
     ],
     endConditions = [
         If (noPlayerHasMoves) playerWithMostPiecesWins
@@ -99,15 +98,11 @@ othello = emptyGame {
 
 othello2 :: Game
 othello2 = emptyGame {
-    board = initRectBoard 3 3 [
-        ((1, 2), Piece "O" (Player "A")),
-        ((1, 1), Piece "O" (Player "A")),
-        ((2, 1), Piece "O" (Player "A")),
-        ((3, 1), Piece "O" (Player "A")),
-        ((3, 2), Piece "O" (Player "A")),
-        ((1, 3), Piece "X" (Player "B")),
-        ((2, 3), Piece "X" (Player "B")),
-        ((3, 3), Piece "X" (Player "B"))
+    board = initRectBoard 8 8 [
+        ((4,4), Piece "O" (Player "A")),
+        ((5,5), Piece "O" (Player "A")),
+        ((4,5), Piece "X" (Player "B")),
+        ((5,4), Piece "X" (Player "B"))
     ],
     pieces = [
         Piece "O" (Player "A"),
@@ -118,8 +113,16 @@ othello2 = emptyGame {
         Player "B"
     ],
     rules = [
-        -- If (tileIsEmpty `AND` checkSurrPieces) (placePiece `COMBINE` changeSurrLines)
-        If (tileIsEmpty `AND` checkSurrPieces) placePiece `SEQ` changeSurrLines
+        If (tileIsEmpty `AND` checkSurrPieces) (placePiece >>> changeSurrLines)
+        -- If (tileIsEmpty `AND` checkSurrPieces) (placePiece),
+        -- If (tileIsEmpty) $ placeLine (0, 1) `UNTIL` (allyTile)
+        -- If (tileIsEmpty) $ placeLine (1, 0) `UNTIL` (tileIsEmpty `OR` allyTile),
+        -- If (tileIsEmpty) $ placeLine (-1,0) `UNTIL` (tileIsEmpty `OR` allyTile),
+        -- If (tileIsEmpty) $ placeLine (0,-1) `UNTIL` (tileIsEmpty `OR` allyTile),
+        -- If (tileIsEmpty) $ placeLine (1, 1) `UNTIL` (tileIsEmpty `OR` allyTile),
+        -- If (tileIsEmpty) $ placeLine (1,-1) `UNTIL` (tileIsEmpty `OR` allyTile),
+        -- If (tileIsEmpty) $ placeLine (-1,-1)`UNTIL` (tileIsEmpty `OR` allyTile),
+        -- If (tileIsEmpty) $ placeLine (-1,1) `UNTIL` (tileIsEmpty `OR` allyTile),
     ],
     endConditions = [
         If (noPlayerHasMoves) playerWithMostPiecesWins

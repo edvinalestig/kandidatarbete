@@ -6,6 +6,7 @@ Description : A Haskell module containing all the types used in the DSL
 module DSL.Types (
     Game (..),
     Rule (..),
+    (>>>),
     NewRule (..),
     Update (..),
     Condition (..),
@@ -24,6 +25,7 @@ module DSL.Types (
 ) where
 
 import Test.QuickCheck
+import Control.Monad.Loops
 -- import Data.Map (Map)
 
 -- | The main game object where all game info is contained. 
@@ -54,12 +56,16 @@ data Game = Game
 --         dispFunction  :: Game -> IO ()
 --     }
 
+
+-- | Represent the input a user can provide,
+-- what piece they act on and what they'll do with it
 data Turn = Turn
     {
         piece  :: Piece,
         action :: Action
     }
 
+-- | Represent a move that a piece can make
 data Action = Place Pos
             | Move Pos Pos
             | Step Pos Int
@@ -70,23 +76,28 @@ data Rule = TurnRule      (Turn -> Game -> Bool)
           | UpdateRule    (Turn -> Game -> Board)
 
 
-data Update = Update (Game -> Game)
+data Update = Update (Turn -> Game -> Game)
             | Update `COMBINE` Update
 
-runUpdate :: Update -> Game -> Game
-runUpdate (Update f) g        = f g
-runUpdate (u1 `COMBINE` u2) g = runUpdate u2 (runUpdate u1 g)
+runUpdate :: Update -> Turn -> Game -> Game
+runUpdate (Update f)        t g = f t g
+runUpdate (u1 `COMBINE` u2) t g = runUpdate u2 t (runUpdate u1 t g)
 
-data NewRule = Rule (Turn -> Update)
+(>>>) :: NewRule -> NewRule -> NewRule
+(>>>) = SEQ
+
+data NewRule = Rule Update
              | If (Condition Turn) NewRule
              | IfElse (Condition Turn) NewRule NewRule
              | NewRule `SEQ` NewRule
+             | NewRule `UNTIL` (Condition Turn)
 
 runRule :: NewRule -> Turn -> Game -> Maybe Game
-runRule (Rule f)         t g = Just (runUpdate (f t) g)
+runRule (Rule f)         t g = Just (runUpdate f t g)
 runRule (If c r)         t g = if runCondition c t g then runRule r t g else Nothing
 runRule (IfElse c r1 r2) t g = if runCondition c t g then runRule r1 t g else runRule r2 t g
 runRule (r1 `SEQ` r2)    t g = runRule r1 t g >>= runRule r2 t -- equal to: if isJust (runRule r1 t g) then runRule r2 t (fromJust iter1) else Nothing
+runRule (r `UNTIL` c)    t g = iterateUntilM (not . runCondition c t) (runRule r t) g 
 
 
 data Condition a = Condition (a -> Game -> Bool)
