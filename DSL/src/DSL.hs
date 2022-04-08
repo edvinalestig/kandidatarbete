@@ -21,7 +21,7 @@ import Control.Monad.Random (evalRandIO, MonadRandom (getRandomR))
 import Data.Bifunctor (Bifunctor(bimap))
 import Data.List.Split (chunksOf, splitOn)
 import Text.Read (readMaybe)
-import Data.Maybe ( isJust )
+import Data.Maybe ( isJust, fromMaybe )
 
 -- | Plays a game
 playGame :: Game -> IO ()
@@ -55,24 +55,16 @@ playGame game = do
 
 -- | Plays one turn
 playTurn :: Game -> Piece -> Pos -> Game
-playTurn game piece position =
-    if not $ isValidInput turn game then
-        game
-    else do
-        let newGame = foldl (\b f -> runRule f turn game) (Just game) (rules game)
-
-        postPlayTurn turn newGame
+playTurn game piece position | not $ isValidInput turn game = game
+                             | otherwise = postPlayTurn turn newGame
     where
+        newGame = foldl (\g f -> fromMaybe g $ runRule f turn g) game (rules game)
         turn = Turn {piece = piece, action = Place position}
 
-postPlayTurn :: Turn -> Maybe Game -> Game
-postPlayTurn _    Nothing     = error "No rules could be applied"
-postPlayTurn turn (Just game) = do
-    let newGame = foldl (\(Just g) f -> runRule f turn g) (Just game) (endConditions game)
-    case newGame of
-      Nothing -> game {players = cyclePlayers $ players game}
-      Just ga -> ga {players = cyclePlayers $ players ga}
-        
+postPlayTurn :: Turn -> Game -> Game
+postPlayTurn turn game = newGame {players = cyclePlayers $ players newGame}
+    where
+        newGame = foldl (\g f -> fromMaybe g $ runRule f turn g) game (endConditions game)
 
 
 -- | Returns `True` if no player has any valid moves, `False` otherwise
