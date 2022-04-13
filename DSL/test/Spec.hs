@@ -1,7 +1,12 @@
 import Test.QuickCheck
 import Test.Hspec
+import Test.Hspec.QuickCheck
 import DSL.Lib
 import DSL.Types
+import DSL.Utility
+import DSL
+import TestGames
+
 
 main :: IO ()
 main = hspec $ do
@@ -10,13 +15,15 @@ main = hspec $ do
     describe "Lib" $ do
         it "rectBoard creates a rectangular board of correct width and height"
             $ property $ \w h -> prop_rectBoard_isCorrectSize w h
-        it "checks that boardIsFull actualy determines that there are no empty tiles"
-            $ property $ \b -> prop_boardIsFull_noEmpty b
+        -- it "checks that boardIsFull actualy determines that there are no empty tiles"
+        --     $ property $ \b -> prop_boardIsFull_noEmpty b
         it "verify that the amount of diagonals is equal to what it should be"
             $ property $ \w h k -> prop_getDiagonals_correctAmount w h k
         it "check that the amount of columns is equal to the amount of rows of a certain size on a square board"
             $ property $ \s k -> prop_getRows_equalsOnSquareBoards_getColumns s k
-
+    describe "Play" $ do
+        prop "placement of pieces in tictactoe"
+            $ again prop_correctPlacementTicTacToe
 
 test_prop :: [Int] -> Bool
 test_prop xs = reverse (reverse xs) == xs
@@ -30,11 +37,11 @@ prop_rectBoard_isCorrectSize w' h' = all ((w ==) . length) board && length board
     board = rectBoard w h
 
 -- Verify that when the board is full it is equivalent to no empty tiles on the board
-prop_boardIsFull_noEmpty :: Board -> Bool
-prop_boardIsFull_noEmpty b = boardIsFull b == noEmpty b
-  where
-    noEmpty :: Board -> Bool
-    noEmpty = not . any (any empty')
+-- prop_boardIsFull_noEmpty :: Board -> Bool
+-- prop_boardIsFull_noEmpty b = boardIsFull b == noEmpty b
+--   where
+--     noEmpty :: Board -> Bool
+--     noEmpty = not . any (any empty')
 
 -- | Verify that the amount of diagonals is correct given the formula 2(w-k+1)(h-k+1)
 --   where w and h are larger than zero and k is smaller than or equal to the smallest of w and h
@@ -57,7 +64,26 @@ prop_getRows_equalsOnSquareBoards_getColumns s' k' = k <= s ==> length rows == l
     rows = getRows board k
     cols = getColumns board k
 
+prop_correctPlacementTicTacToe :: Property
+prop_correctPlacementTicTacToe = ioProperty $ do
+    b <- generate arbitraryTicTacToeBoard
+    let game = tictactoe {
+        board = b
+    }
+    x <- generate $ elements [0..2]
+    y <- generate $ elements [0..2]
+    let pos = Pos x y
+    piece <- generate . elements $ pieces game
+    let g = playTurn game piece pos
 
+    if empty' (getTile (board game) pos) then
+        return $ getTile (board g) pos === PieceTile piece pos 
+                 .&&. players g =/= players game
+    else
+        return $ board g === board game .&&. players g === players game
+
+arbitraryTicTacToeBoard :: Gen Board
+arbitraryTicTacToeBoard = vectorOf 3 $ vectorOf 3 arbitrary
 
 empty' :: Tile -> Bool
 empty' (Empty _) = True

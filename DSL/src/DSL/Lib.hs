@@ -33,7 +33,8 @@ module DSL.Lib (
     getDiagonals,
     getRows,
     getColumns,
-    prettyPrint
+    prettyPrint,
+    getTile
 ) where
 
 import DSL.Types

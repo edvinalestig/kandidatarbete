@@ -10,7 +10,8 @@ module DSL (
     -- play,
     noPlayerHasMoves,
     playGame,
-    prettyPrint
+    prettyPrint,
+    playTurn
 ) where
 
 import DSL.Lib

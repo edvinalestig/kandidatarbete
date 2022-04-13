@@ -29,6 +29,7 @@ library
       DSL.Lib
       DSL.Types
       DSL.Utility
+      TestGames
   other-modules:
       Paths_DSL
   hs-source-dirs:
