@@ -93,7 +93,6 @@ data NewRule = Rule (Update Game)
              | IfElse (Condition Turn) NewRule NewRule
              | NewRule `SEQ` NewRule
              | NewRule `THEN` NewRule
-             | NewRule `UNTIL` (Condition Turn)
              | IterateUntil NewRule (Condition Turn)
 
 
@@ -103,18 +102,6 @@ data Condition a = Condition (a -> Game -> Bool)
                  | (Condition a) `OR`  (Condition a)
                  | NOT (Condition a)
 
-
-
--- rules2 :: [NewRule a]
--- rules2 = [ If (Condition tileIsEmpty `AND` Condition (or . pattern [oneOrMore . enemyPiece, oneOrMore . alliedPiece] . allDirections))
---            (Rule (Update placePiece `COMBINE` Update (change to (allDirections (pattern [oneOrMore enemyPiece, oneOrMore alliedPiece])))))
---         ]
-
--- d :: Piece -> Bool
--- d = or . pattern [oneOrMore . enemyPiece, oneOrMore . alliedPiece] . allDirections
-
--- a :: Piece -> Pos -> Board -> Bool
--- a pi po = or . pattern [oneOrMore . enemyPiece, oneOrMore . alliedPiece] . allDirections pi po
 
 
 tileIsEmpty :: Pos -> Board -> Bool

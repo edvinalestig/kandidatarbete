@@ -24,9 +24,13 @@ module DSL.Lib (
     turnUpRight,
     turnDownLeft,
     turnDownRight,
+    allDirections,
+    iteratorThen,
+    changedState,
     tileIsEmpty,
     placeLine,
     allyTile,
+    enemyTile,
     tileBelowIsNotEmpty,
     boardIsFull,
     playerWithMostPieces,
@@ -50,7 +54,8 @@ import DSL.Utility
 import Data.List
 import Data.Ord
 import Data.Function
-import Data.Maybe (Maybe(Nothing))
+import Data.Maybe (Maybe(Nothing), fromMaybe, fromJust, isJust)
+import DSL.Run (runRule)
 
 -- | An empty `Game` 
 emptyGame :: Game
@@ -69,17 +74,18 @@ emptyGame = Game {
 
 -- * Boards
 
--- | Creates a rectangular board
+-- | Creates an empty rectangular board
 rectBoard :: Int -> Int -> Board
 rectBoard w h = [[Empty (Pos x y) | x <- [0..w-1]] | y <- [0..h-1]]
 
+-- | Creates an rectangular board with pieces in certain locations
 initRectBoard :: Int -> Int -> [((Int, Int), Piece)] -> Board
 initRectBoard w h []            = [[Empty (Pos x y) | x <- [0..w-1]] | y <- [0..h-1]]
 initRectBoard w h (((x,y), pi):ps) = board $ _placePiece (Turn pi (Place (Pos (x-1) (y-1)))) $ emptyGame {board = initRectBoard w h ps}
 
 
 -- * Rules
-
+-- | ???
 placeLine :: (Int, Int) -> NewRule
 placeLine i = Rule $ Update $ _placeLine i
 
@@ -94,6 +100,7 @@ _placeLine (dx, dy) t@(Turn a (Place (Pos x y))) g = do
 _placeLine _ _ g = g
 
 
+-- | "Combines" two turns by adding the coordinates of the their `Action`, maybe poorly named
 combineTurn :: NewRule -> NewRule
 combineTurn = TurnRule $ Update _combineTurn
 
@@ -101,39 +108,67 @@ _combineTurn :: Turn -> Turn -> Turn
 _combineTurn (Turn _ (Place (Pos x' y'))) (Turn p (Place (Pos x y))) = Turn p (Place (Pos (x+x') (y+y')))
 _combineTurn _ _ = error "Cannot combine turns that are not Place"
 
--- | Test
+-- | An `Update` for moving one step down, mainly for use with `IterateUntil`
 turnDown :: Update Turn
 turnDown = Update $ _turnDirection (0, 1)
 
+-- | An `Update` for moving one step up, mainly for use with `IterateUntil`
 turnUp :: Update Turn
 turnUp = Update $ _turnDirection (0, -1)
 
+-- | An `Update` for moving one step left, mainly for use with `IterateUntil`
 turnLeft :: Update Turn
 turnLeft = Update $ _turnDirection (-1, 0)
 
+-- | An `Update` for moving one step right, mainly for use with `IterateUntil`
 turnRight :: Update Turn
 turnRight = Update $ _turnDirection (1, 0)
 
+-- | An `Update` for moving one step down and to the left, mainly for use with `IterateUntil`
 turnDownLeft :: Update Turn
 turnDownLeft = Update $ _turnDirection (-1, 1)
 
+-- | An `Update` for moving one step up and to the left, mainly for use with `IterateUntil`
 turnUpLeft :: Update Turn
 turnUpLeft = Update $ _turnDirection (-1, -1)
 
+-- | An `Update` for moving one step up and to the right, mainly for use with `IterateUntil`
 turnUpRight :: Update Turn
 turnUpRight = Update $ _turnDirection (1, -1)
 
+-- | An `Update` for moving one step down and to the right, mainly for use with `IterateUntil`
 turnDownRight :: Update Turn
 turnDownRight = Update $ _turnDirection (1, 1)
 
+-- | A list containing all directions
+allDirections :: [Update Turn]
+allDirections = [turnDown, turnUp, turnLeft,
+                    turnRight, turnDownLeft, turnUpLeft, turnUpRight, turnDownRight]
 
+-- | 
+iteratorThen :: (Update Turn -> NewRule) -> [Update Turn] -> NewRule
+iteratorThen f [] = error "no input is found"
+iteratorThen f [t] = f t
+iteratorThen f (t:ts) = f t >>> iteratorThen f ts
 
- 
+-- | 
+iteratorSEQ :: (Update Turn -> NewRule) -> [Update Turn] -> NewRule
+iteratorSEQ f [] = error "no input is found"
+iteratorSEQ f [t] = f t
+iteratorSEQ f (t:ts) = f t >=> iteratorSEQ f ts
 
+-- | A condition for checking if the turn players action will apply a `Rule`
+changedState :: NewRule -> Condition Turn
+changedState r = Condition $ _changedState r
+
+_changedState :: NewRule -> Turn -> Game -> Bool
+_changedState r t g = board g /= maybe [] board mg
+    where mg = runRule r t g
 
 _turnDirection :: (Int, Int) -> Turn -> Turn -> Turn
 _turnDirection (dx, dy) _ = _combineTurn $ Turn (Piece "" (Player "")) (Place (Pos dx dy))
 
+-- | A `Rule` for a draw
 gameDraw :: NewRule
 gameDraw = Rule $ Update makeDraw
 
@@ -141,6 +176,7 @@ makeDraw :: Turn -> Game -> Game
 makeDraw _ g | gameEnded g = g
              | otherwise   = g {gameEnded = True, winner = Nothing}
 
+-- | A `Rule` for the turn player winning
 currentPlayerWins :: NewRule
 currentPlayerWins = Rule $ Update _currentPlayerWins
 
@@ -151,7 +187,8 @@ _currentPlayerWins _ g | gameEnded g = g
 currentPlayer :: Game -> Maybe Player
 currentPlayer g = Just $ head (players g)
 
-allyTile :: Condition Turn 
+-- | A `Condition` for checking if a tile belongs to the turn player
+allyTile :: Condition Turn
 allyTile = Condition _allyTile
 
 _allyTile :: Turn -> Game -> Bool
@@ -162,8 +199,26 @@ _allyTile t@(Turn p _) g = do
     where
         pos = turnToPos t g
 
+-- | A `Condition` for checking if a tile does not belong to the turn player
+enemyTile :: Condition Turn
+enemyTile = Condition _enemyTile
+
+_enemyTile :: Turn -> Game -> Bool
+_enemyTile t@(Turn p _) g = do
+    case getTile (board g) pos of
+        (PieceTile p' _) -> p /= p'
+        _                -> False
+    where
+        pos = turnToPos t g
+
+
+-- | A condition that is always true
 trueCond :: Condition Turn
 trueCond = Condition (\t g -> True)
+
+-- | A condition that is always false
+falseCond :: Condition Turn
+falseCond = Condition (\t g -> True)
 
 
 -- | Checks if a `Tile` at a given position is empty
@@ -176,6 +231,7 @@ _isWithinBoard t g = x >= 0 && x < (length . head . board) g && y >= 0 && y < (l
         (Pos x y) = turnToPos t g
 
 
+-- | A `Condition` for checking if a tile is empty
 tileIsEmpty :: Condition Turn
 tileIsEmpty = Condition _tileIsEmpty
 
@@ -189,7 +245,7 @@ turnGameToTile t g = getTile (board g) (turnToPos t g)
 -- | A rule for checking if the tile below a tile is empty
 tileBelowIsNotEmpty :: Condition Turn
 tileBelowIsNotEmpty = Condition _tileBelowIsNotEmpty
-    
+
 _tileBelowIsNotEmpty :: Turn -> Game -> Bool
 _tileBelowIsNotEmpty t@(Turn p _) g = do
     let maxY = length (board g) - 1 -- Bottom row
@@ -216,6 +272,8 @@ _inARow k _ g = do
     where
         b = board g
 
+
+-- | TILL MR ALESTIG: DESSA ANVÄNDS INTE, GÖR MED DEM VAD DU VILL >:)
 checkSurrPieces :: Condition Turn
 checkSurrPieces = Condition _checkSurrPieces
 

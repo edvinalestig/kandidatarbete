@@ -89,18 +89,24 @@ othello = emptyGame {
         Player "B"
     ],
     rules = [
-        If (tileIsEmpty `AND` checkSurrPieces) (placePiece >=> changeSurrLines)
+        If (tileIsEmpty `AND` (changedState othelloRule)) -- 
+            (placePiece >>> othelloRule)
     ],
     endConditions = [
         If (noPlayerHasMoves) playerWithMostPiecesWins
     ]
 }
 
+-- Currently contains a lamba function, change for later by making less general?
+othelloRule = iteratorThen (\t -> IterateUntil (TurnRule t (If enemyTile placePiece)) (allyTile)) allDirections
+
 othello2 :: Game
 othello2 = emptyGame {
     board = initRectBoard 8 8 [
         ((4,4), Piece "O" (Player "A")),
-        ((5,5), Piece "O" (Player "A")),
+        ((5,5), Piece "X" (Player "B")),
+        ((3,3), Piece "O" (Player "A")),
+        ((3,2), Piece "O" (Player "A")),
         ((4,5), Piece "X" (Player "B")),
         ((5,4), Piece "X" (Player "B"))
     ],
@@ -113,16 +119,8 @@ othello2 = emptyGame {
         Player "B"
     ],
     rules = [
-        If (tileIsEmpty `AND` checkSurrPieces) (placePiece 
-                      >>> IterateUntil (TurnRule turnDown placePiece) (tileIsEmpty)
-                      >>> IterateUntil (TurnRule turnLeft placePiece) (tileIsEmpty)
-                      >>> IterateUntil (TurnRule turnUp placePiece) (tileIsEmpty)
-                      >>> IterateUntil (TurnRule turnRight placePiece) (tileIsEmpty)
-                      >>> IterateUntil (TurnRule turnUpLeft placePiece) (tileIsEmpty)
-                      >>> IterateUntil (TurnRule turnUpRight placePiece) (tileIsEmpty)
-                      >>> IterateUntil (TurnRule turnDownLeft placePiece) (tileIsEmpty)
-                      >>> IterateUntil (TurnRule turnDownRight placePiece) (tileIsEmpty)
-        )
+        If (tileIsEmpty `AND` (changedState othelloRule)) -- 
+            (placePiece >>> othelloRule)
     ],
     endConditions = [
         If (noPlayerHasMoves) playerWithMostPiecesWins

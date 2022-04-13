@@ -42,7 +42,7 @@ playGame game = do
 
         -- Check if nothing happened on the board to give feedback to the user
         -- Todo: Determine if this is the way to do it, now it assumes that all moves include changes to the board
-        if board game == board newGame then 
+        if board game == board newGame && players game == players newGame then 
             putStrLn "Inputted move does not follow the rules" >>
             playGame newGame
 
@@ -91,7 +91,7 @@ pieceHasMoves p g (t:ts) | null (rules g) = False
                          | otherwise = inputs p t || pieceHasMoves p g ts
         where
         inputs :: Piece -> Tile -> Bool
-        inputs p t = all (\f -> isJust $ runRule f (turn t) g) (rules g)
+        inputs p t = any (\f -> isJust $ runRule f (turn t) g) (rules g)
         turn t = Turn {piece = p, action = Place (getPos t)}
 
 -- | Given a string, check if it is equal "q" and interupt the game by throwing an error based on that.
@@ -123,7 +123,7 @@ getValidInput p g = do
 
 -- | Checks whether or not you can place a piece at a specific location
 isValidInput :: Turn -> Game -> Bool
-isValidInput turn game = all (\f -> isJust $ runRule f turn game) (rules game)
+isValidInput turn game = any (\f -> isJust $ runRule f turn game) (rules game)
 
 
 -- | Asks the user for which piece they want to place

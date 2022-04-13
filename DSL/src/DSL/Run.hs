@@ -6,6 +6,7 @@ module DSL.Run (
 import DSL.Types
 import DSL.Utility (_placePiece, turnToPos)
 import Control.Monad.Loops
+import Data.Maybe
 
 
 runUpdate :: Update t -> Turn -> t -> t
@@ -23,29 +24,29 @@ runRule (r1 `SEQ` r2)    t g = runRule r1 t g >>= runRule r2 t -- equal to: if i
 runRule (r1 `THEN` r2)   t g = case runRule r1 t g of
                                     Just c  -> runRule r2 t c
                                     Nothing -> runRule r2 t g
-runRule (r `UNTIL` c)    t g = iterateUntilM (not . runCondition c t) (runRule r t) g
-runRule (IterateUntil r c) t g = runUntil c r t g
+runRule (IterateUntil r c) t g = runUntilMain c r t g
 
-runUntil :: Condition Turn -> NewRule -> Turn -> Game -> Maybe Game
+-- | Uses `runUntil`, if the result is Left then that result of `runUntil` is returned.
+-- If the result is Right then the input `Game` is returned.
+runUntilMain :: Condition Turn -> NewRule -> Turn -> Game -> Maybe Game
+runUntilMain c r@(TurnRule u r') t g = case runUntil c r t g of
+                                        Left a -> Just a
+                                        Right a -> Just g
+runUntilMain _ _ _ g = error "runUntilMain: Cannot have an IterateUntil without TurnRule"
+
+
+runUntil :: Condition Turn -> NewRule -> Turn -> Game -> Either Game Game
 runUntil c r@(TurnRule u r') t g = if runCondition (NOT c) t' g then
                                         case runRule r' t' g of
                                             Just game -> 
                                                 runUntil c r t' game
-                                            Nothing   -> Nothing
+                                            Nothing   -> Right g
                                     else
-                                         Just g
+                                        Left g
     where
-        t' = runUpdate u t t --{action = Place (Pos 0 1)}
-        -- g' = if runCondition c t' game then  else Nothing
+        t' = runUpdate u t t
 runUntil _ _ _ g = error "Cannot have an IterateUntil without TurnRule"
 
-
-
--- iterateUntilM :: (a -> Bool) -> (a -> Maybe a) -> a -> Maybe a
--- iterateUntilM p f v 
---     | p v       = return v
---     | otherwise = f v >>= iterateUntilM p f
--- if isJust (f v) then iterateUntilM p f (fromJust (f v)) else Nothing
 
 replaceTiles :: Game -> [Tile] -> Game
 replaceTiles g []     = g
@@ -57,7 +58,7 @@ replaceTiles g (t:ts) = case t of
 
 
 runCondition :: Condition Turn -> Turn -> Game -> Bool
-runCondition (Condition c) t g = c t g
+runCondition (Condition c) t g = _isWithinBoard t g && c t g
 runCondition (c1 `AND` c2) t g = runCondition c1 t g && runCondition c2 t g
 runCondition (c1 `OR` c2)  t g = runCondition c1 t g || runCondition c2 t g
 runCondition (NOT c)       t g = not $ runCondition c t g
@@ -65,7 +66,7 @@ runCondition (NOT c)       t g = not $ runCondition c t g
 -- isWithinBoard :: Condition Turn
 -- isWithinBoard = Condition _isWithinBoard
 
--- _isWithinBoard :: Turn -> Game -> Bool
--- _isWithinBoard t g = x >= 0 && x < (length . head . board) g && y >= 0 && y < (length . board) g
---     where
---         (Pos x y) = turnToPos t g
+_isWithinBoard :: Turn -> Game -> Bool
+_isWithinBoard t g = x >= 0 && x < (length . head . board) g && y >= 0 && y < (length . board) g
+    where
+        (Pos x y) = turnToPos t g
