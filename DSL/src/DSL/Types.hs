@@ -5,7 +5,7 @@ Description : A Haskell module containing all the types used in the DSL
 
 module DSL.Types (
     Game (..),
-    Rule (..),
+    (>=>),
     (>>>),
     NewRule (..),
     Update (..),
@@ -18,14 +18,10 @@ module DSL.Types (
     Piece (..),
     Tile (..),
     Board,
-    runUpdate,
-    runRule,
-    runCondition,
     Die (..)
 ) where
 
 import Test.QuickCheck
-import Control.Monad.Loops
 -- import Data.Map (Map)
 
 -- | The main game object where all game info is contained. 
@@ -72,32 +68,34 @@ data Action = Place Pos
 
 -- | A rule object with a function which has to be fulfilled in
 --   order to be able to place a piece on the board.
-data Rule = TurnRule      (Turn -> Game -> Bool)
-          | UpdateRule    (Turn -> Game -> Board)
+-- data Rule = TurnRule      (Turn -> Game -> Bool)
+--           | UpdateRule    (Turn -> Game -> Board)
 
 
-data Update = Update (Turn -> Game -> Game)
-            | Update `COMBINE` Update
+data Update t = Update (Turn -> t -> t)
+              | (Update t) `COMBINE` (Update t)
+              --  | TileUpdate (Turn -> [[Tile]] -> [[Tile]])
 
-runUpdate :: Update -> Turn -> Game -> Game
-runUpdate (Update f)        t g = f t g
-runUpdate (u1 `COMBINE` u2) t g = runUpdate u2 t (runUpdate u1 t g)
 
+-- | Sequences two rules, 
+--   if one results in `Nothing` then the result will be `Nothing`
+(>=>) :: NewRule -> NewRule -> NewRule
+(>=>) = SEQ
+
+-- | Sequences two rules,
+--   if one results in `Nothing` it will take the previous `Just` and continue
 (>>>) :: NewRule -> NewRule -> NewRule
-(>>>) = SEQ
+(>>>) = THEN
 
-data NewRule = Rule Update
+data NewRule = Rule (Update Game)
+             | TurnRule (Update Turn) NewRule
              | If (Condition Turn) NewRule
              | IfElse (Condition Turn) NewRule NewRule
              | NewRule `SEQ` NewRule
+             | NewRule `THEN` NewRule
              | NewRule `UNTIL` (Condition Turn)
+             | IterateUntil NewRule (Condition Turn)
 
-runRule :: NewRule -> Turn -> Game -> Maybe Game
-runRule (Rule f)         t g = Just (runUpdate f t g)
-runRule (If c r)         t g = if runCondition c t g then runRule r t g else Nothing
-runRule (IfElse c r1 r2) t g = if runCondition c t g then runRule r1 t g else runRule r2 t g
-runRule (r1 `SEQ` r2)    t g = runRule r1 t g >>= runRule r2 t -- equal to: if isJust (runRule r1 t g) then runRule r2 t (fromJust iter1) else Nothing
-runRule (r `UNTIL` c)    t g = iterateUntilM (not . runCondition c t) (runRule r t) g 
 
 
 data Condition a = Condition (a -> Game -> Bool)
@@ -105,11 +103,7 @@ data Condition a = Condition (a -> Game -> Bool)
                  | (Condition a) `OR`  (Condition a)
                  | NOT (Condition a)
 
-runCondition :: Condition t -> t -> Game -> Bool
-runCondition (Condition c) t g = c t g
-runCondition (c1 `AND` c2) t g = runCondition c1 t g && runCondition c2 t g
-runCondition (c1 `OR` c2)  t g = runCondition c1 t g || runCondition c2 t g
-runCondition (NOT c)       t g = not $ runCondition c t g
+
 
 -- rules2 :: [NewRule a]
 -- rules2 = [ If (Condition tileIsEmpty `AND` Condition (or . pattern [oneOrMore . enemyPiece, oneOrMore . alliedPiece] . allDirections))

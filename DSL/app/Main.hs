@@ -89,7 +89,7 @@ othello = emptyGame {
         Player "B"
     ],
     rules = [
-        If (tileIsEmpty `AND` checkSurrPieces) (placePiece >>> changeSurrLines)
+        If (tileIsEmpty `AND` checkSurrPieces) (placePiece >=> changeSurrLines)
     ],
     endConditions = [
         If (noPlayerHasMoves) playerWithMostPiecesWins
@@ -113,16 +113,16 @@ othello2 = emptyGame {
         Player "B"
     ],
     rules = [
-        If (tileIsEmpty `AND` checkSurrPieces) (placePiece >>> changeSurrLines)
-        -- If (tileIsEmpty `AND` checkSurrPieces) (placePiece),
-        -- If (tileIsEmpty) $ placeLine (0, 1) `UNTIL` (allyTile)
-        -- If (tileIsEmpty) $ placeLine (1, 0) `UNTIL` (tileIsEmpty `OR` allyTile),
-        -- If (tileIsEmpty) $ placeLine (-1,0) `UNTIL` (tileIsEmpty `OR` allyTile),
-        -- If (tileIsEmpty) $ placeLine (0,-1) `UNTIL` (tileIsEmpty `OR` allyTile),
-        -- If (tileIsEmpty) $ placeLine (1, 1) `UNTIL` (tileIsEmpty `OR` allyTile),
-        -- If (tileIsEmpty) $ placeLine (1,-1) `UNTIL` (tileIsEmpty `OR` allyTile),
-        -- If (tileIsEmpty) $ placeLine (-1,-1)`UNTIL` (tileIsEmpty `OR` allyTile),
-        -- If (tileIsEmpty) $ placeLine (-1,1) `UNTIL` (tileIsEmpty `OR` allyTile),
+        If (tileIsEmpty `AND` checkSurrPieces) (placePiece 
+                      >>> IterateUntil (TurnRule turnDown placePiece) (tileIsEmpty)
+                      >>> IterateUntil (TurnRule turnLeft placePiece) (tileIsEmpty)
+                      >>> IterateUntil (TurnRule turnUp placePiece) (tileIsEmpty)
+                      >>> IterateUntil (TurnRule turnRight placePiece) (tileIsEmpty)
+                      >>> IterateUntil (TurnRule turnUpLeft placePiece) (tileIsEmpty)
+                      >>> IterateUntil (TurnRule turnUpRight placePiece) (tileIsEmpty)
+                      >>> IterateUntil (TurnRule turnDownLeft placePiece) (tileIsEmpty)
+                      >>> IterateUntil (TurnRule turnDownRight placePiece) (tileIsEmpty)
+        )
     ],
     endConditions = [
         If (noPlayerHasMoves) playerWithMostPiecesWins

@@ -27,6 +27,7 @@ library
   exposed-modules:
       DSL
       DSL.Lib
+      DSL.Run
       DSL.Types
       DSL.Utility
   other-modules:

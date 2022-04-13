@@ -15,6 +15,15 @@ module DSL.Lib (
     currentPlayer,
     gameDraw,
     _boardIsFull,
+    combineTurn,
+    turnDown,
+    turnLeft,
+    turnUp,
+    turnRight,
+    turnUpLeft,
+    turnUpRight,
+    turnDownLeft,
+    turnDownRight,
     tileIsEmpty,
     placeLine,
     allyTile,
@@ -85,6 +94,46 @@ _placeLine (dx, dy) t@(Turn a (Place (Pos x y))) g = do
 _placeLine _ _ g = g
 
 
+combineTurn :: NewRule -> NewRule
+combineTurn = TurnRule $ Update _combineTurn
+
+_combineTurn :: Turn -> Turn -> Turn
+_combineTurn (Turn _ (Place (Pos x' y'))) (Turn p (Place (Pos x y))) = Turn p (Place (Pos (x+x') (y+y')))
+_combineTurn _ _ = error "Cannot combine turns that are not Place"
+
+-- | Test
+turnDown :: Update Turn
+turnDown = Update $ _turnDirection (0, 1)
+
+turnUp :: Update Turn
+turnUp = Update $ _turnDirection (0, -1)
+
+turnLeft :: Update Turn
+turnLeft = Update $ _turnDirection (-1, 0)
+
+turnRight :: Update Turn
+turnRight = Update $ _turnDirection (1, 0)
+
+turnDownLeft :: Update Turn
+turnDownLeft = Update $ _turnDirection (-1, 1)
+
+turnUpLeft :: Update Turn
+turnUpLeft = Update $ _turnDirection (-1, -1)
+
+turnUpRight :: Update Turn
+turnUpRight = Update $ _turnDirection (1, -1)
+
+turnDownRight :: Update Turn
+turnDownRight = Update $ _turnDirection (1, 1)
+
+
+
+ 
+
+
+_turnDirection :: (Int, Int) -> Turn -> Turn -> Turn
+_turnDirection (dx, dy) _ = _combineTurn $ Turn (Piece "" (Player "")) (Place (Pos dx dy))
+
 gameDraw :: NewRule
 gameDraw = Rule $ Update makeDraw
 
@@ -118,6 +167,15 @@ trueCond = Condition (\t g -> True)
 
 
 -- | Checks if a `Tile` at a given position is empty
+isWithinBoard :: Condition Turn
+isWithinBoard = Condition _isWithinBoard
+
+_isWithinBoard :: Turn -> Game -> Bool
+_isWithinBoard t g = x >= 0 && x < (length . head . board) g && y >= 0 && y < (length . board) g
+    where
+        (Pos x y) = turnToPos t g
+
+
 tileIsEmpty :: Condition Turn
 tileIsEmpty = Condition _tileIsEmpty
 

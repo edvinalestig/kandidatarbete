@@ -16,6 +16,7 @@ module DSL (
 import DSL.Lib
 import DSL.Types
 import DSL.Utility
+import DSL.Run
 import Data.List (transpose, group)
 import Control.Monad.Random (evalRandIO, MonadRandom (getRandomR))
 import Data.Bifunctor (Bifunctor(bimap))
