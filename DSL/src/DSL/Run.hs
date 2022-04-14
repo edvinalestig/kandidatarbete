@@ -65,4 +65,4 @@ runCondition (NOT c)       t g = not $ runCondition c t g
 _isWithinBoard :: Turn -> Game -> Bool
 _isWithinBoard t g = x >= 0 && x < (length . head . board) g && y >= 0 && y < (length . board) g
     where
-        (Pos x y) = turnToPos t g
+        (Pos x y) = turnToPos t

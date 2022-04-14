@@ -27,28 +27,28 @@ import Data.Maybe ( isJust, fromMaybe )
 
 -- | Plays a game
 playGame :: Game -> IO ()
-playGame game = do
-    dispFunction game game
+playGame g = do
+    dispFunction g g
 
-    let currPlayer = head $ players game
-    if not (playerHasMoves game currPlayer) then do
+    let currPlayer = head $ players g
+    if not (playerHasMoves g currPlayer) then do
         putStrLn $ "Player " ++ show currPlayer ++ "'s turn is skipped - no valid moves"
-        playGame $ game {players = cyclePlayers $ players game}
+        playGame $ g {players = cyclePlayers $ players g}
     else do
         putStrLn $ "Player " ++ show currPlayer ++ "'s turn"
-        piece <- getValidPiece currPlayer (pieces game)
-        input <- getValidInput piece game
+        piece <- getValidPiece currPlayer (pieces g)
+        input <- getValidInput piece g
 
-        let newGame = playTurn game piece input
+        let newGame = playTurn g piece input
 
         -- Check if nothing happened on the board to give feedback to the user
         -- Todo: Determine if this is the way to do it, now it assumes that all moves include changes to the board
-        if board game == board newGame && players game == players newGame then 
+        if board g == board newGame && players g == players newGame then 
             putStrLn "Inputted move does not follow the rules" >>
             playGame newGame
 
         else if gameEnded newGame then
-            dispFunction game newGame >>
+            dispFunction g newGame >>
             case winner newGame of
                 Nothing -> putStrLn "Draw!"
                 Just p -> putStrLn $ "Player " ++ show p ++ " has won!"
@@ -57,16 +57,16 @@ playGame game = do
 
 -- | Plays one turn
 playTurn :: Game -> Piece -> Pos -> Game
-playTurn game piece position | not $ isValidInput turn game = game
-                             | otherwise = postPlayTurn turn newGame
+playTurn g p pos | not $ isValidInput turn g = g
+                 | otherwise = postPlayTurn turn newGame
     where
-        newGame = foldl (\g f -> fromMaybe g $ runRule f turn g) game (rules game)
-        turn = Turn {piece = piece, action = Place position}
+        newGame = applyRules turn g rules
+        turn = placeTurn' p pos
 
 postPlayTurn :: Turn -> Game -> Game
-postPlayTurn turn game = newGame {players = cyclePlayers $ players newGame}
+postPlayTurn t g = newGame {players = cyclePlayers $ players newGame}
     where
-        newGame = foldl (\g f -> fromMaybe g $ runRule f turn g) game (endConditions game)
+        newGame = applyRules t g endConditions
 
 
 -- | Returns `True` if no player has any valid moves, `False` otherwise
@@ -89,11 +89,10 @@ playerHasMoves g p = playerHasMoves' (filterPieces p (pieces g)) g
 pieceHasMoves :: Piece -> Game -> [Tile] -> Bool
 pieceHasMoves _ _ [] = False 
 pieceHasMoves p g (t:ts) | null (rules g) = False
-                         | otherwise = inputs p t || pieceHasMoves p g ts
-        where
-        inputs :: Piece -> Tile -> Bool
-        inputs p t = any (\f -> isJust $ runRule f (turn t) g) (rules g)
-        turn t = Turn {piece = p, action = Place (getPos t)}
+                         | otherwise = validInput || pieceHasMoves p g ts
+    where
+        validInput = isValidInput turn g
+        turn = placeTurn' p (getPos t)
 
 -- | Given a string, check if it is equal "q" and interupt the game by throwing an error based on that.
 --   If the string is not equal to "q", this function does nothing
@@ -124,7 +123,11 @@ getValidInput p g = do
 
 -- | Checks whether or not you can place a piece at a specific location
 isValidInput :: Turn -> Game -> Bool
-isValidInput turn game = any (\f -> isJust $ runRule f turn game) (rules game)
+isValidInput t g = any (\f -> isJust $ runRule f t g) (rules g)
+
+-- | Apply a series of rules on the game and return the final result
+applyRules :: Turn -> Game -> (Game -> [Rule]) -> Game
+applyRules t g f = foldl (\g' r -> fromMaybe g' $ runRule r t g') g (f g)
 
 
 -- | Asks the user for which piece they want to place

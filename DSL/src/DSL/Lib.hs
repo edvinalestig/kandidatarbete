@@ -101,8 +101,7 @@ combineTurn :: Rule -> Rule
 combineTurn = TurnRule $ Update _combineTurn
 
 _combineTurn :: Turn -> Turn -> Turn
-_combineTurn (Turn _ (Place pos')) (Turn p (Place pos)) = Turn p (Place (pos + pos'))
-_combineTurn _ _ = error "Cannot combine turns that are not Place"
+_combineTurn t1 t2@(Turn p _) = placeTurn' p (turnToPos t1 + turnToPos t2)
 
 -- | An `Update` for moving one step down, mainly for use with `IterateUntil`
 turnDown :: Update Turn
@@ -220,7 +219,7 @@ isWithinBoard = Condition _isWithinBoard
 _isWithinBoard :: Turn -> Game -> Bool
 _isWithinBoard t g = x >= 0 && x < (length . head . board) g && y >= 0 && y < (length . board) g
     where
-        (Pos x y) = turnToPos t g
+        (Pos x y) = turnToPos t
 
 
 -- | A `Condition` for checking if a tile is empty
@@ -239,7 +238,7 @@ _tileBelowIsNotEmpty t@(Turn p _) g =
     y >= maxY || not (_tileIsEmpty (placeTurn p x (y+1)) g)
     where
         maxY = length (board g) - 1 -- Bottom row
-        (Pos x y) = turnToPos t g
+        (Pos x y) = turnToPos t
 
 -- | Checks if the board is full
 boardIsFull :: Condition a

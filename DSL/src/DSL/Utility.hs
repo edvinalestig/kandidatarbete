@@ -6,6 +6,7 @@ module DSL.Utility (
     placePiece,
     _placePiece,
     placeTurn,
+    placeTurn',
     getTile,
     turnGameToTile,
     getPlayer,
@@ -24,12 +25,17 @@ placePiece = Rule $ Update _placePiece
 -- | Places a piece in a certain position on the board
 _placePiece :: Turn -> Game -> Game
 _placePiece t@(Turn p _) g = g {board = replaceAtIndex y newRow (board g)}
-    where (Pos x y) = turnToPos t g
+    where (Pos x y) = turnToPos t
           tile = PieceTile p (Pos x y)
           newRow = replaceAtIndex x tile (board g !! y)
 
+-- | Create a `Turn`, with the action `Place`, on the specified coordinates
 placeTurn :: Piece -> Int -> Int -> Turn
 placeTurn p x y = Turn p (Place (Pos x y))
+
+-- | This does the same as @'placeTurn'@, but it takes in @Pos@ instead of two `Int`.
+placeTurn' :: Piece -> Pos -> Turn
+placeTurn' p pos = Turn p (Place pos)
 
 
 getTile :: Board -> Pos -> Tile
@@ -42,7 +48,7 @@ eqTile (Empty _) (Empty _) = True
 eqTile _ _ = False
 
 turnGameToTile :: Turn -> Game -> Tile
-turnGameToTile t g = getTile (board g) (turnToPos t g)
+turnGameToTile t g = getTile (board g) (turnToPos t)
 
 getPlayer :: Piece -> Player
 getPlayer (Piece _ p) = p
@@ -51,9 +57,9 @@ getPos :: Tile -> Pos
 getPos (PieceTile _ pos) = pos
 getPos (Empty pos) = pos
 
-turnToPos :: Turn -> Game -> Pos
-turnToPos (Turn _ (Place pos)) _  = pos
-turnToPos (Turn _ (Move _ pos)) _ = pos
+turnToPos :: Turn -> Pos
+turnToPos (Turn _ (Place pos))  = pos
+turnToPos (Turn _ (Move _ pos)) = pos
 
 -- | Filters out `Nothing` from a list of `Maybe`
 filterNothing :: [Maybe a] -> [a]
