@@ -110,7 +110,7 @@ getValidInput p g = do
 
     checkInterupt input
 
-    let xs = filterNothing (map readMaybe $ splitOn "," input :: [Maybe Int])
+    let xs = catMaybes (map readMaybe $ splitOn "," input :: [Maybe Int])
     if length xs /= 2 then
         putStrLn "You must write exactly two integer coordinates separated by one comma" >>
         getValidInput p g

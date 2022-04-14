@@ -61,12 +61,6 @@ turnToPos :: Turn -> Pos
 turnToPos (Turn _ (Place pos))  = pos
 turnToPos (Turn _ (Move _ pos)) = pos
 
--- | Filters out `Nothing` from a list of `Maybe`
-filterNothing :: [Maybe a] -> [a]
-filterNothing []     = []
-filterNothing (x:xs) = case x of
-    Nothing -> filterNothing xs
-    Just a  -> a : filterNothing xs
 
 -- | Replaces an elemenent with the input at a given index
 replaceAtIndex :: Int -> a -> [a] -> [a]    
