@@ -101,7 +101,7 @@ combineTurn :: Rule -> Rule
 combineTurn = TurnRule $ Update _combineTurn
 
 _combineTurn :: Turn -> Turn -> Turn
-_combineTurn (Turn _ (Place (Pos x' y'))) (Turn p (Place (Pos x y))) = Turn p (Place (Pos (x+x') (y+y')))
+_combineTurn (Turn _ (Place pos')) (Turn p (Place pos)) = Turn p (Place (pos + pos'))
 _combineTurn _ _ = error "Cannot combine turns that are not Place"
 
 -- | An `Update` for moving one step down, mainly for use with `IterateUntil`

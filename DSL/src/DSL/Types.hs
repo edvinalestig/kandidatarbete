@@ -116,6 +116,9 @@ instance Show Tile where
 instance Show Piece where
     show (Piece s _) = s
 
+instance Num Pos where
+    (Pos x y) + (Pos x' y') = Pos (x+x') (y+y')
+
 
 -- * Testing
 
