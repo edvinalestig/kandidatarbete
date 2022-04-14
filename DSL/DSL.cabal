@@ -30,6 +30,7 @@ library
       DSL.Run
       DSL.Types
       DSL.Utility
+      TestGames
   other-modules:
       Paths_DSL
   hs-source-dirs:
