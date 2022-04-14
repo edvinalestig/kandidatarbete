@@ -2,32 +2,13 @@
 Module      : Utility
 Description : A Haskell module containing various utility functions
 -}
-module DSL.Utility (
-    placePiece,
-    _placePiece,
-    placeTurn,
-    placeTurn',
-    getTile,
-    turnGameToTile,
-    getPlayer,
-    getPos,
-    turnToPos,
-    filterNothing,
-    replaceAtIndex
-) where
+module DSL.Utility where
 
 import DSL.Types
 
--- | Places a piece in a certain position on the board
-placePiece :: Rule
-placePiece = Rule $ Update _placePiece
 
--- | Places a piece in a certain position on the board
-_placePiece :: Turn -> Game -> Game
-_placePiece t@(Turn p _) g = g {board = replaceAtIndex y newRow (board g)}
-    where (Pos x y) = turnToPos t
-          tile = PieceTile p (Pos x y)
-          newRow = replaceAtIndex x tile (board g !! y)
+
+
 
 -- | Create a `Turn`, with the action `Place`, on the specified coordinates
 placeTurn :: Piece -> Int -> Int -> Turn
@@ -41,14 +22,25 @@ placeTurn' p pos = Turn p (Place pos)
 getTile :: Board -> Pos -> Tile
 getTile b (Pos x y) = (b !! y) !! x
 
+turnGameToTile :: Turn -> Game -> Tile
+turnGameToTile t g = getTile (board g) (turnToPos t)
+
 -- | Check if two tiles has the same piece on it, or if both tiles are empty 
 eqTile :: Tile -> Tile -> Bool
 eqTile (PieceTile p1 _) (PieceTile p2 _) = p1 == p2
 eqTile (Empty _) (Empty _) = True
 eqTile _ _ = False
 
-turnGameToTile :: Turn -> Game -> Tile
-turnGameToTile t g = getTile (board g) (turnToPos t)
+-- | Checks if all tiles in a list of tiles are non-empty and contain the same `Piece`
+allEQ :: [Tile] -> Bool
+allEQ ((Empty _):as) = False
+allEQ ((PieceTile p _):as) = all (samePiece p) as
+allEQ _      = True
+
+-- | Checks if a `Piece` is the same as another `Piece` on a `Tile`
+samePiece :: Piece -> Tile -> Bool
+samePiece _ (Empty _) = False
+samePiece p (PieceTile p2 _) = p == p2
 
 getPlayer :: Piece -> Player
 getPlayer (Piece _ p) = p
@@ -57,10 +49,18 @@ getPos :: Tile -> Pos
 getPos (PieceTile _ pos) = pos
 getPos (Empty pos) = pos
 
+-- | "Combines" two turns by adding the coordinates of the their `Action`, maybe poorly named
+combineTurn :: Turn -> Turn -> Turn
+combineTurn t1 t2@(Turn p _) = placeTurn' p (turnToPos t1 + turnToPos t2)
+
 turnToPos :: Turn -> Pos
 turnToPos (Turn _ (Place pos))  = pos
 turnToPos (Turn _ (Move _ pos)) = pos
 
+-- | Checks if a tile is empty
+empty' :: Tile -> Bool
+empty' (Empty _) = True
+empty'  _        = False
 
 -- | Replaces an elemenent with the input at a given index
 replaceAtIndex :: Int -> a -> [a] -> [a]    

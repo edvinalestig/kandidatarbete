@@ -1,9 +1,10 @@
 import Test.QuickCheck
 import Test.Hspec
 import Test.Hspec.QuickCheck
-import DSL.Lib
+import DSL.Lib (rectBoard)
 import DSL.Types
 import DSL.Utility
+import DSL.Internal
 import DSL
 import TestGames
 import Data.Maybe (isNothing, fromJust)
@@ -166,11 +167,6 @@ arbitraryTicTacToeBoard = vectorOf 3 $ vectorOf 3 arbitrary
 -- | A generator for a random position on a Tic-Tac-Toe board
 arbitraryTicTacToePos :: Gen Pos
 arbitraryTicTacToePos = Pos <$> elements [0..2] <*> elements [0..2]
-
--- | Checks if a tile is empty
-empty' :: Tile -> Bool
-empty' (Empty _) = True
-empty'  _        = False
 
 
 

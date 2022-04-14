@@ -4,7 +4,7 @@ module DSL.Run (
     runCondition
 ) where
 import DSL.Types
-import DSL.Utility (_placePiece, turnToPos)
+import DSL.Utility (turnToPos)
 import Control.Monad.Loops
 import Data.Maybe
 

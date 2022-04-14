@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       DSL
+      DSL.Internal
       DSL.Lib
       DSL.Run
       DSL.Types

@@ -18,7 +18,7 @@ tictactoe = emptyGame {
         Player "B"
     ],
     rules = [
-        If tileIsEmpty placePiece
+        If emptyTile placePiece
     ],
     endConditions = [
         If (inARow 3) currentPlayerWins,
@@ -41,7 +41,7 @@ tictactoeVariant x y z = emptyGame {
         Player "C"
     ],
     rules = [
-        If tileIsEmpty placePiece
+        If emptyTile placePiece
     ],
     endConditions = [
         If (inARow z) currentPlayerWins,
@@ -61,7 +61,7 @@ connectFour = emptyGame {
         Player "B"
     ],
     rules = [
-        If (tileIsEmpty `AND` tileBelowIsNotEmpty) placePiece
+        If (emptyTile `AND` tileBelowIsNotEmpty) placePiece
     ],
     endConditions = [
         If (inARow 4) currentPlayerWins,
@@ -86,7 +86,7 @@ othello = emptyGame {
         Player "B"
     ],
     rules = [
-        If (tileIsEmpty `AND` changedState othelloRule)
+        If (emptyTile `AND` changedState othelloRule)
             (placePiece >>> othelloRule)
     ],
     endConditions = [
@@ -118,7 +118,7 @@ othello2 = emptyGame {
         Player "B"
     ],
     rules = [
-        If (tileIsEmpty `AND` changedState othelloRule)
+        If (emptyTile `AND` changedState othelloRule)
             (placePiece >>> othelloRule)
     ],
     endConditions = [

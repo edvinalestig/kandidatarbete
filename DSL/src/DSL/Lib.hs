@@ -1,50 +1,61 @@
 {-|
 Module      : Rules
-Description : A Haskell module containing some pre-existing rules that can be used in games
+Description : A haskell module containing functions that users uses to create board games.
 
-This module contains some rules that can be used in different board games and also helper functions to these rules
+A Haskell module containing every available function that the users should have access to.
+This module contains some rules, conditions and updates that can be used in different
+board games and also helper functions to these rules
 -}
 
 module DSL.Lib (
+    -- * Game
+    -- $game
     emptyGame,
 
     -- * Boards
+    -- $board
     rectBoard,
     initRectBoard,
 
     -- * Rules
-    currentPlayerWins,
-    currentPlayer,
+    -- $rule
+    placePiece,
     gameDraw,
-    _boardIsFull,
-    combineTurn,
-    turnDown,
-    turnLeft,
+    currentPlayerWins,
+    playerWithMostPiecesWins,
+    iteratorThen,
+    iteratorSEQ,
+
+    -- * Conditions
+    -- $condition
+    trueCond,
+    falseCond,
+    isWithinBoard,
+    boardIsFull,
+    changedState,
+    allyTile,
+    enemyTile,
+    emptyTile,
+    inARow,
+    tileBelowIsNotEmpty,
+
+    -- * Updates
+    -- $update
+    allDirections,
+    straightDirections,
+    diagonalDirections,
     turnUp,
+    turnLeft,
     turnRight,
+    turnDown,
     turnUpLeft,
     turnUpRight,
     turnDownLeft,
     turnDownRight,
-    allDirections,
-    iteratorThen,
-    changedState,
-    tileIsEmpty,
-    placeLine,
-    allyTile,
-    enemyTile,
-    tileBelowIsNotEmpty,
-    boardIsFull,
-    playerWithMostPieces,
-    playersWithMostPieces,
-    playerWithMostPiecesWins,
-    trueCond,
-    inARow,
-    getDiagonals,
-    getRows,
-    getColumns,
-    prettyPrint,
-    getTile
+
+    -- * Display functions
+    -- $display
+    prettyPrint
 ) where
 
 import DSL.Types
@@ -54,6 +65,11 @@ import Data.Ord
 import Data.Function
 import Data.Maybe (Maybe(Nothing), fromMaybe, fromJust, isJust)
 import DSL.Run (runRule)
+import DSL.Internal
+
+
+-- * Game
+{- $game -}
 
 -- | An empty `Game` used to base games on
 emptyGame :: Game
@@ -69,6 +85,7 @@ emptyGame = Game {
 }
 
 -- * Boards
+{- $board -}
 
 -- | Creates an empty rectangular board
 rectBoard :: Int -> Int -> Board
@@ -81,31 +98,98 @@ initRectBoard w h (((x,y), p):as) = board $ _placePiece (placeTurn p (x-1) (y-1)
 
 
 -- * Rules
--- | ???
-placeLine :: (Int, Int) -> Rule
-placeLine i = Rule $ Update $ _placeLine i
+{- $rule -}
 
--- * this is expected to only take in Place currently.
-_placeLine :: (Int, Int) -> Turn -> Game -> Game
-_placeLine (dx, dy) t@(Turn a (Place (Pos x y))) g = do
-    if x+dx >= 0 && x+dx < (length . head . board) g && y+dy >= 0 && y+dy < (length . board) g then do
-        let g' = _placePiece (t {action = Place (Pos (x+dx) (y+dy))}) g
-        _placeLine (dx, dy) (Turn a (Place (Pos (x+dx) (y+dy)))) g'
-    else do
-        g
-_placeLine _ _ g = g
+-- | Places a piece in a certain position on the board
+placePiece :: Rule
+placePiece = Rule $ Update _placePiece
+
+-- | A `Rule` for a draw
+gameDraw :: Rule
+gameDraw = Rule $ Update _makeDraw
+
+-- | A `Rule` for the turn player winning
+currentPlayerWins :: Rule
+currentPlayerWins = Rule $ Update _currentPlayerWins
+
+-- | A `Rule` for when the player with the most pieces out on the board wins
+playerWithMostPiecesWins :: Rule
+playerWithMostPiecesWins = Rule $ Update _playerWithMostPiecesWins
+
+-- | A `Rule` that applies the lambda function to the `Game`
+-- state for each `Turn` that is sent in
+iteratorThen :: (Update Turn -> Rule) -> [Update Turn] -> Rule
+iteratorThen f [] = error "no input is found"
+iteratorThen f [t] = f t
+iteratorThen f (t:ts) = f t >>> iteratorThen f ts
+
+-- | 
+iteratorSEQ :: (Update Turn -> Rule) -> [Update Turn] -> Rule
+iteratorSEQ f [] = error "no input is found"
+iteratorSEQ f [t] = f t
+iteratorSEQ f (t:ts) = f t >=> iteratorSEQ f ts
 
 
--- | "Combines" two turns by adding the coordinates of the their `Action`, maybe poorly named
-combineTurn :: Rule -> Rule
-combineTurn = TurnRule $ Update _combineTurn
+-- * Conditions
+{- $condition -}
 
-_combineTurn :: Turn -> Turn -> Turn
-_combineTurn t1 t2@(Turn p _) = placeTurn' p (turnToPos t1 + turnToPos t2)
+-- | A condition that is always true
+trueCond :: Condition Turn
+trueCond = Condition (\t g -> True)
 
--- | An `Update` for moving one step down, mainly for use with `IterateUntil`
-turnDown :: Update Turn
-turnDown = Update $ _turnDirection (0, 1)
+-- | A condition that is always false
+falseCond :: Condition Turn
+falseCond = Condition (\t g -> False)
+
+-- | Checks if a `Tile` at a given position is empty
+isWithinBoard :: Condition Turn
+isWithinBoard = Condition _isWithinBoard
+
+-- | Checks if the board is full
+boardIsFull :: Condition a
+boardIsFull = Condition _boardIsFull
+
+-- | A condition for checking if the turn players action will apply a `Rule`
+changedState :: Rule -> Condition Turn
+changedState r = Condition $ _changedState r
+
+-- | A `Condition` for checking if a tile belongs to the turn player
+allyTile :: Condition Turn
+allyTile = Condition $ _comparePieceOnTile (==)
+
+-- | A `Condition` for checking if a tile does not belong to the turn player
+enemyTile :: Condition Turn
+enemyTile = Condition $ _comparePieceOnTile (/=)
+
+-- | A `Condition` for checking if a tile is empty
+emptyTile :: Condition Turn
+emptyTile = Condition _emptyTile
+
+-- | Checks if the board contains a given number of pieces in a row in any 
+--   orientation. (Vertical, horizontal, diagonal)
+inARow :: Int -> Condition Turn
+inARow k = Condition $ _inARow k
+
+-- | A rule for checking if the tile below a tile is empty
+tileBelowIsNotEmpty :: Condition Turn
+tileBelowIsNotEmpty = Condition _tileBelowIsNotEmpty
+
+
+-- * Updates
+{- $update -}
+
+
+-- | A list containing all directions
+allDirections :: [Update Turn]
+allDirections = straightDirections ++ diagonalDirections
+
+-- | A list containing all straight directions
+straightDirections :: [Update Turn]
+straightDirections = [turnDown, turnUp, turnLeft, turnRight]
+
+-- | A list containing all diagonal directions
+diagonalDirections :: [Update Turn]
+diagonalDirections = [turnDownLeft, turnUpLeft, turnUpRight, turnDownRight]
 
 -- | An `Update` for moving one step up, mainly for use with `IterateUntil`
 turnUp :: Update Turn
@@ -119,9 +203,9 @@ turnLeft = Update $ _turnDirection (-1, 0)
 turnRight :: Update Turn
 turnRight = Update $ _turnDirection (1, 0)
 
--- | An `Update` for moving one step down and to the left, mainly for use with `IterateUntil`
-turnDownLeft :: Update Turn
-turnDownLeft = Update $ _turnDirection (-1, 1)
+-- | An `Update` for moving one step down, mainly for use with `IterateUntil`
+turnDown :: Update Turn
+turnDown = Update $ _turnDirection (0, 1)
 
 -- | An `Update` for moving one step up and to the left, mainly for use with `IterateUntil`
 turnUpLeft :: Update Turn
@@ -131,206 +215,18 @@ turnUpLeft = Update $ _turnDirection (-1, -1)
 turnUpRight :: Update Turn
 turnUpRight = Update $ _turnDirection (1, -1)
 
+-- | An `Update` for moving one step down and to the left, mainly for use with `IterateUntil`
+turnDownLeft :: Update Turn
+turnDownLeft = Update $ _turnDirection (-1, 1)
+
 -- | An `Update` for moving one step down and to the right, mainly for use with `IterateUntil`
 turnDownRight :: Update Turn
 turnDownRight = Update $ _turnDirection (1, 1)
 
--- | A list containing all straight directions
-straightDirections :: [Update Turn]
-straightDirections = [turnDown, turnUp, turnLeft, turnRight]
-
--- | A list containing all diagonal directions
-diagonalDirections :: [Update Turn]
-diagonalDirections = [turnDownLeft, turnUpLeft, turnUpRight, turnDownRight]
-
--- | A list containing all directions
-allDirections :: [Update Turn]
-allDirections = straightDirections ++ diagonalDirections
-
--- | 
-iteratorThen :: (Update Turn -> Rule) -> [Update Turn] -> Rule
-iteratorThen f [] = error "no input is found"
-iteratorThen f [t] = f t
-iteratorThen f (t:ts) = f t >>> iteratorThen f ts
-
--- | 
-iteratorSEQ :: (Update Turn -> Rule) -> [Update Turn] -> Rule
-iteratorSEQ f [] = error "no input is found"
-iteratorSEQ f [t] = f t
-iteratorSEQ f (t:ts) = f t >=> iteratorSEQ f ts
-
--- | A condition for checking if the turn players action will apply a `Rule`
-changedState :: Rule -> Condition Turn
-changedState r = Condition $ _changedState r
-
-_changedState :: Rule -> Turn -> Game -> Bool
-_changedState r t g = board g /= maybe [] board mg
-    where mg = runRule r t g
-
-_turnDirection :: (Int, Int) -> Turn -> Turn -> Turn
-_turnDirection (dx, dy) _ = _combineTurn $ Turn (Piece "" (Player "")) (Place (Pos dx dy))
-
--- | A `Rule` for a draw
-gameDraw :: Rule
-gameDraw = Rule $ Update makeDraw
-
-makeDraw :: Turn -> Game -> Game
-makeDraw _ g | gameEnded g = g
-             | otherwise   = g {gameEnded = True, winner = Nothing}
-
--- | A `Rule` for the turn player winning
-currentPlayerWins :: Rule
-currentPlayerWins = Rule $ Update _currentPlayerWins
-
-_currentPlayerWins :: Turn -> Game -> Game
-_currentPlayerWins _ g | gameEnded g = g
-                       | otherwise   = g {gameEnded = True, winner = currentPlayer g}
-
-currentPlayer :: Game -> Maybe Player
-currentPlayer g = Just $ head (players g)
-
--- | A `Condition` for checking if a tile belongs to the turn player
-allyTile :: Condition Turn
-allyTile = Condition $ comparePieceOnTile (==)
-
--- | A `Condition` for checking if a tile does not belong to the turn player
-enemyTile :: Condition Turn
-enemyTile = Condition $ comparePieceOnTile (/=)
-
-comparePieceOnTile :: (Piece -> Piece -> Bool) -> Turn -> Game -> Bool
-comparePieceOnTile f t@(Turn p _) g =
-    case turnGameToTile t g of
-        (PieceTile p' _) -> p `f` p'
-        _                -> False
-
--- | A condition that is always true
-trueCond :: Condition Turn
-trueCond = Condition (\t g -> True)
-
--- | A condition that is always false
-falseCond :: Condition Turn
-falseCond = Condition (\t g -> False)
-
-
--- | Checks if a `Tile` at a given position is empty
-isWithinBoard :: Condition Turn
-isWithinBoard = Condition _isWithinBoard
-
-_isWithinBoard :: Turn -> Game -> Bool
-_isWithinBoard t g = x >= 0 && x < (length . head . board) g && y >= 0 && y < (length . board) g
-    where
-        (Pos x y) = turnToPos t
-
-
--- | A `Condition` for checking if a tile is empty
-tileIsEmpty :: Condition Turn
-tileIsEmpty = Condition _tileIsEmpty
-
-_tileIsEmpty :: Turn -> Game -> Bool
-_tileIsEmpty t g = empty' (turnGameToTile t g)
-
--- | A rule for checking if the tile below a tile is empty
-tileBelowIsNotEmpty :: Condition Turn
-tileBelowIsNotEmpty = Condition _tileBelowIsNotEmpty
-
-_tileBelowIsNotEmpty :: Turn -> Game -> Bool
-_tileBelowIsNotEmpty t@(Turn p _) g =
-    y >= maxY || not (_tileIsEmpty (placeTurn p x (y+1)) g)
-    where
-        maxY = length (board g) - 1 -- Bottom row
-        (Pos x y) = turnToPos t
-
--- | Checks if the board is full
-boardIsFull :: Condition a
-boardIsFull = Condition _boardIsFull
-
-_boardIsFull :: a -> Game -> Bool
-_boardIsFull _ g = " " `notElem` concatMap (map show) (board g)
-
--- | Checks if the board contains a given number of pieces in a row in any 
---   orientation. (Vertical, horizontal, diagonal)
-inARow :: Int -> Condition Turn
-inARow k = Condition $ _inARow k
-
-_inARow :: Int -> Turn -> Game -> Bool
-_inARow k _ g = do
-    let everything = getRows b k ++ getColumns b k ++ getDiagonals b k
-    any allEQ everything
-    where
-        b = board g
-
--- | Check if two tiles has the same piece on it, or if both tiles are empty 
-eqTile :: Tile -> Tile -> Bool
-eqTile (PieceTile p1 _) (PieceTile p2 _) = p1 == p2
-eqTile (Empty _) (Empty _) = True
-eqTile _ _ = False
-
--- * Helper functions
-
--- | Counts how many pieces of one type there are on the board
-countPiece :: Piece -> Board -> Int
-countPiece p b = length $ filter (samePiece p) (concat b)
-
-playerWithMostPiecesWins :: Rule
-playerWithMostPiecesWins = Rule $ Update _playerWithMostPiecesWins
-
-_playerWithMostPiecesWins :: Turn -> Game -> Game
-_playerWithMostPiecesWins _ g = g {winner = playerWithMostPieces g}
-
-playerWithMostPieces :: Game -> Maybe Player
-playerWithMostPieces game | length ps == 1 = Just $ head ps
-                          | otherwise      = Nothing
-    where
-        ps = playersWithMostPieces (players game) (board game)
-
--- | Returns a list containing all pieces on the board belonging to a player        
-playerPieces :: Player -> Board -> [Piece]
-playerPieces p b = filter (\x -> getPlayer x == p) as
-    where
-        as = [pie | PieceTile pie pos <- concat b]
-
-
--- | Returns a list containing all players with the most pieces on the board
-playersWithMostPieces :: [Player] -> Board -> [Player]
-playersWithMostPieces ps b = players
-         where amounts = map length $ playerPieces <$> ps <*> [b]
-               amounts' = zip ps amounts
-               players = [player | (player, n) <- amounts', n >= maximum amounts]
-
-
--- | Gets a list of all diagonals of a certain length on the board
-getDiagonals :: Board -> Int -> [[Tile]]
-getDiagonals b k = getDiagonals' b k ++ getDiagonals' (map reverse b) k
-    where
-        getDiagonals' b k = concat [[[(b !! (y + k')) !! (x + k') | k' <- [0..k-1]]
-                            | x <- [0..length (head b) - k]]
-                            | y <- [0..length b - k]]
-
--- | Gets a list of all rows of a given length on the board
-getRows :: Board -> Int -> [[Tile]]
-getRows b len = concat [[take len (drop n r) | n <- [0..(length r - len)]] | r <- b]
-
--- | Gets a list of all columns of a given length on the board
-getColumns :: Board -> Int -> [[Tile]]
-getColumns b = getRows (transpose b)
-
--- | Checks if all tiles in a list of tiles are non-empty and contain the same `Piece`
-allEQ :: [Tile] -> Bool
-allEQ ((Empty _):as) = False -- all empty' as
-allEQ ((PieceTile p _):as) = all (samePiece p) as
-allEQ _      = True
-
--- | Checks if a tile is empty
-empty' :: Tile -> Bool
-empty' (Empty _) = True
-empty'  _        = False
-
--- | Checks if a `Piece` is the same as another `Piece` on a `Tile`
-samePiece :: Piece -> Tile -> Bool
-samePiece _ (Empty _) = False
-samePiece p (PieceTile p2 _) = p == p2
 
 -- * Display functions
+{- $display -}
+
 
 -- | Prints a board in the terminal. It's pretty.
 prettyPrint :: Game -> IO ()
