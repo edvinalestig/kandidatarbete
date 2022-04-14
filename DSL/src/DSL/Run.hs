@@ -47,15 +47,6 @@ runUntil c r@(TurnRule u r') t g =
 runUntil _ _ _ g = error "Cannot have an IterateUntil without TurnRule"
 
 
-replaceTiles :: Game -> [Tile] -> Game
-replaceTiles g []     = g
-replaceTiles g (t:ts) = case t of 
-    (PieceTile p pos) -> replaceTiles (g' p pos) ts
-    _                 -> replaceTiles g  ts
-    where
-        g' p pos = _placePiece (Turn p (Place pos)) g
-
-
 runCondition :: Condition Turn -> Turn -> Game -> Bool
 runCondition (Condition c) t g = _isWithinBoard t g && c t g
 runCondition (c1 `AND` c2) t g = runCondition c1 t g && runCondition c2 t g
