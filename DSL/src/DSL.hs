@@ -7,8 +7,6 @@ Description : A Haskell module containing the majority of the code in this libra
 This module contains the functions that are required for actually playing a board game
 -}
 module DSL (
-    -- play,
-    noPlayerHasMoves,
     playGame,
     prettyPrint,
     playTurn
@@ -18,6 +16,7 @@ import DSL.Lib
 import DSL.Types
 import DSL.Utility
 import DSL.Run
+import DSL.Internal (isValidInput, playerHasMoves, filterPieces)
 import Data.List (transpose, group)
 import Control.Monad.Random (evalRandIO, MonadRandom (getRandomR))
 import Data.Bifunctor (Bifunctor(bimap))
@@ -68,32 +67,6 @@ postPlayTurn t g = newGame {players = cyclePlayers $ players newGame}
     where
         newGame = applyRules t g endConditions
 
-
--- | Returns `True` if no player has any valid moves, `False` otherwise
-noPlayerHasMoves :: Condition Turn
-noPlayerHasMoves = Condition _noPlayerHasMoves
-
--- | Returns `True` if no player has any valid moves, `False` otherwise
-_noPlayerHasMoves :: Turn -> Game -> Bool
-_noPlayerHasMoves _ g = not $ any (playerHasMoves g) (players g)
-
--- | Determines if a given player has any legal moves with regards to the rules and a board state
-playerHasMoves :: Game -> Player -> Bool
-playerHasMoves g p = playerHasMoves' (filterPieces p (pieces g)) g
-    where
-        playerHasMoves' :: [Piece] -> Game -> Bool
-        playerHasMoves' []     g = False
-        playerHasMoves' (p:ps) g = pieceHasMoves p g (concat (board g)) || playerHasMoves' ps g
-
--- | Determines if a given piece has any legal moves with regards to the rules and a board state
-pieceHasMoves :: Piece -> Game -> [Tile] -> Bool
-pieceHasMoves _ _ [] = False 
-pieceHasMoves p g (t:ts) | null (rules g) = False
-                         | otherwise = validInput || pieceHasMoves p g ts
-    where
-        validInput = isValidInput turn g
-        turn = placeTurn' p (getPos t)
-
 -- | Given a string, check if it is equal "q" and interupt the game by throwing an error based on that.
 --   If the string is not equal to "q", this function does nothing
 checkInterupt :: String -> IO ()
@@ -121,10 +94,6 @@ getValidInput p g = do
             getValidInput p g
         else return $ Pos (x - 1) (y - 1)
 
--- | Checks whether or not you can place a piece at a specific location
-isValidInput :: Turn -> Game -> Bool
-isValidInput t g = any (\f -> isJust $ runRule f t g) (rules g)
-
 -- | Apply a series of rules on the game and return the final result
 applyRules :: Turn -> Game -> (Game -> [Rule]) -> Game
 applyRules t g f = foldl (\g' r -> fromMaybe g' $ runRule r t g') g (f g)
@@ -147,15 +116,6 @@ getValidPiece player ps =
         helper p = "Piece: " ++ show p
         filteredPieces = filterPieces player ps
 
-
--- | Returns a list containing all pieces that the given player can place
-filterPieces :: Player -> [Piece] -> [Piece]
-filterPieces _ [] = []
-filterPieces player ((Piece s p):ps) =
-    if player == p then
-        Piece s p : filterPieces player ps
-    else
-        filterPieces player ps
 
 -- | Current player is put last in the player list
 cyclePlayers :: [Player] -> [Player]

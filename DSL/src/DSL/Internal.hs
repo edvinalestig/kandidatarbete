@@ -21,6 +21,7 @@ module DSL.Internal (
     _changedState,
     _comparePieceOnTile,
     _emptyTile,
+    _noPlayerHasMoves,
     _inARow,
     _tileBelowIsNotEmpty,
 
@@ -33,10 +34,14 @@ module DSL.Internal (
     playerWithMostPieces,
     playersWithMostPieces,
     playerPieces,
+    playerHasMoves,
+    pieceHasMoves,
     getDiagonals,
     getRows,
     getColumns,
-    countPiece
+    countPiece,
+    isValidInput,
+    filterPieces
 ) where
 
 import DSL.Types
@@ -99,6 +104,10 @@ _comparePieceOnTile f t@(Turn p _) g =
 _emptyTile :: Turn -> Game -> Bool
 _emptyTile t g = empty' (turnGameToTile t g)
 
+-- | Returns `True` if no player has any valid moves, `False` otherwise
+_noPlayerHasMoves :: Turn -> Game -> Bool
+_noPlayerHasMoves _ g = not $ any (playerHasMoves g) (players g)
+
 _inARow :: Int -> Turn -> Game -> Bool
 _inARow k _ g = any allEQ everything
     where
@@ -145,6 +154,26 @@ playerPieces p b = filter (\x -> getPlayer x == p) as
         as = [pie | PieceTile pie pos <- concat b]
 
 
+
+-- | Determines if a given player has any legal moves with regards to the rules and a board state
+playerHasMoves :: Game -> Player -> Bool
+playerHasMoves g p = playerHasMoves' (filterPieces p (pieces g)) g
+    where
+        playerHasMoves' :: [Piece] -> Game -> Bool
+        playerHasMoves' []     g = False
+        playerHasMoves' (p:ps) g = pieceHasMoves p g (concat (board g)) || playerHasMoves' ps g
+
+-- | Determines if a given piece has any legal moves with regards to the rules and a board state
+pieceHasMoves :: Piece -> Game -> [Tile] -> Bool
+pieceHasMoves _ _ [] = False 
+pieceHasMoves p g (t:ts) | null (rules g) = False
+                         | otherwise = validInput || pieceHasMoves p g ts
+    where
+        validInput = isValidInput turn g
+        turn = placeTurn' p (getPos t)
+
+
+
 -- | Gets a list of all diagonals of a certain length on the board
 getDiagonals :: Board -> Int -> [[Tile]]
 getDiagonals b k = getDiagonals' b k ++ getDiagonals' (map reverse b) k
@@ -162,6 +191,20 @@ getColumns :: Board -> Int -> [[Tile]]
 getColumns b = getRows (transpose b)
 
 
+
 -- | Counts how many pieces of one type there are on the board
 countPiece :: Piece -> Board -> Int
 countPiece p b = length $ filter (samePiece p) (concat b)
+
+-- | Checks whether or not you can place a piece at a specific location
+isValidInput :: Turn -> Game -> Bool
+isValidInput t g = any (\f -> isJust $ runRule f t g) (rules g)
+
+-- | Returns a list containing all pieces that the given player can place
+filterPieces :: Player -> [Piece] -> [Piece]
+filterPieces _ [] = []
+filterPieces player ((Piece s p):ps) =
+    if player == p then
+        Piece s p : filterPieces player ps
+    else
+        filterPieces player ps

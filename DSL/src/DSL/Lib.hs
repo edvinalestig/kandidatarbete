@@ -36,6 +36,7 @@ module DSL.Lib (
     allyTile,
     enemyTile,
     emptyTile,
+    noPlayerHasMoves,
     inARow,
     tileBelowIsNotEmpty,
 
@@ -164,6 +165,10 @@ enemyTile = Condition $ _comparePieceOnTile (/=)
 -- | A `Condition` for checking if a tile is empty
 emptyTile :: Condition Turn
 emptyTile = Condition _emptyTile
+
+-- | Returns `True` if no player has any valid moves, `False` otherwise
+noPlayerHasMoves :: Condition Turn
+noPlayerHasMoves = Condition _noPlayerHasMoves
 
 -- | Checks if the board contains a given number of pieces in a row in any 
 --   orientation. (Vertical, horizontal, diagonal)
