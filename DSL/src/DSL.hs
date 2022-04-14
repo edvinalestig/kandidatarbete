@@ -23,7 +23,7 @@ import Control.Monad.Random (evalRandIO, MonadRandom (getRandomR))
 import Data.Bifunctor (Bifunctor(bimap))
 import Data.List.Split (chunksOf, splitOn)
 import Text.Read (readMaybe)
-import Data.Maybe ( isJust, fromMaybe )
+import Data.Maybe ( isJust, fromMaybe, catMaybes )
 
 -- | Plays a game
 playGame :: Game -> IO ()
