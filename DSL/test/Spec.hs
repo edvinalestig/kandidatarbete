@@ -10,23 +10,18 @@ import TestGames
 
 main :: IO ()
 main = hspec $ do
-    describe "Common" $ do
-        it "reversing a reversed list returns the input list" $ property $ \xs -> test_prop xs
     describe "Lib" $ do
-        it "rectBoard creates a rectangular board of correct width and height"
-            $ property $ \w h -> prop_rectBoard_isCorrectSize w h
+        prop "rectBoard creates a rectangular board of correct width and height" $
+            \w h -> prop_rectBoard_isCorrectSize w h
         -- it "checks that boardIsFull actualy determines that there are no empty tiles"
         --     $ property $ \b -> prop_boardIsFull_noEmpty b
-        it "verify that the amount of diagonals is equal to what it should be"
-            $ property $ \w h k -> prop_getDiagonals_correctAmount w h k
-        it "check that the amount of columns is equal to the amount of rows of a certain size on a square board"
-            $ property $ \s k -> prop_getRows_equalsOnSquareBoards_getColumns s k
+        prop "verify that the amount of diagonals is equal to what it should be" $
+            \w h k -> prop_getDiagonals_correctAmount w h k
+        prop "check that the amount of columns is equal to the amount of rows of a certain size on a square board" $
+            \s k -> prop_getRows_equalsOnSquareBoards_getColumns s k
     describe "Play" $ do
-        prop "placement of pieces in tictactoe"
-            $ again prop_correctPlacementTicTacToe
-
-test_prop :: [Int] -> Bool
-test_prop xs = reverse (reverse xs) == xs
+        prop "placement of pieces in tictactoe" $
+            again prop_correctPlacementTicTacToe
 
 -- | Verify that the board is a rectangle and of correct width and height
 prop_rectBoard_isCorrectSize :: Int -> Int -> Bool
@@ -64,6 +59,9 @@ prop_getRows_equalsOnSquareBoards_getColumns s' k' = k <= s ==> length rows == l
     rows = getRows board k
     cols = getColumns board k
 
+-- | Tries to place a piece on a random tile on a random board
+--   It checks whether it changes the game state according to
+--   the rules of tictactoe.
 prop_correctPlacementTicTacToe :: Property
 prop_correctPlacementTicTacToe = ioProperty $ do
     b <- generate arbitraryTicTacToeBoard
@@ -82,9 +80,11 @@ prop_correctPlacementTicTacToe = ioProperty $ do
     else
         return $ board g === board game .&&. players g === players game
 
+-- | A generator for a random Tic-Tac-Toe board
 arbitraryTicTacToeBoard :: Gen Board
 arbitraryTicTacToeBoard = vectorOf 3 $ vectorOf 3 arbitrary
 
+-- | Checks if a tile is empty
 empty' :: Tile -> Bool
 empty' (Empty _) = True
 empty'  _        = False

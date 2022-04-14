@@ -48,7 +48,7 @@ playGame game = do
             playGame newGame
 
         else if gameEnded newGame then
-            (dispFunction game) newGame >>
+            dispFunction game newGame >>
             case winner newGame of
                 Nothing -> putStrLn "Draw!"
                 Just p -> putStrLn $ "Player " ++ show p ++ " has won!"
@@ -157,16 +157,6 @@ filterPieces player ((Piece s p):ps) =
 -- | Current player is put last in the player list
 cyclePlayers :: [Player] -> [Player]
 cyclePlayers ps = tail ps ++ [head ps]
-
-
--- * Utility functions
-
--- | Throws a die
-throwDie :: Die -> IO Int
-throwDie (Die n) = evalRandIO $ getRandomR (1,n)
-
-
-
 
 
 

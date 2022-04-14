@@ -7,9 +7,11 @@ This module contains some rules that can be used in different board games and al
 
 module DSL.Lib (
     emptyGame,
+
     -- * Boards
     rectBoard,
     initRectBoard,
+
     -- * Rules
     currentPlayerWins,
     currentPlayer,
@@ -36,13 +38,8 @@ module DSL.Lib (
     playerWithMostPieces,
     playersWithMostPieces,
     playerWithMostPiecesWins,
-    checkSurrPieces,
     trueCond,
-    changeSurrLines,
-    getDiagonalTiles,
     inARow,
-    checkSurrLine,
-    pieceAtPos,
     getDiagonals,
     getRows,
     getColumns,
@@ -58,13 +55,11 @@ import Data.Function
 import Data.Maybe (Maybe(Nothing), fromMaybe, fromJust, isJust)
 import DSL.Run (runRule)
 
--- | An empty `Game` 
+-- | An empty `Game` used to base games on
 emptyGame :: Game
 emptyGame = Game {
     board = undefined,
     pieces = [],
-    dice = [],
-    path = const,
     players = [],
     rules = [],
     endConditions = [],
@@ -87,7 +82,7 @@ initRectBoard w h (((x,y), pi):ps) = board $ _placePiece (Turn pi (Place (Pos (x
 
 -- * Rules
 -- | ???
-placeLine :: (Int, Int) -> NewRule
+placeLine :: (Int, Int) -> Rule
 placeLine i = Rule $ Update $ _placeLine i
 
 -- * this is expected to only take in Place currently.
@@ -102,7 +97,7 @@ _placeLine _ _ g = g
 
 
 -- | "Combines" two turns by adding the coordinates of the their `Action`, maybe poorly named
-combineTurn :: NewRule -> NewRule
+combineTurn :: Rule -> Rule
 combineTurn = TurnRule $ Update _combineTurn
 
 _combineTurn :: Turn -> Turn -> Turn
@@ -147,22 +142,22 @@ allDirections = [turnDown, turnUp, turnLeft,
                     turnRight, turnDownLeft, turnUpLeft, turnUpRight, turnDownRight]
 
 -- | 
-iteratorThen :: (Update Turn -> NewRule) -> [Update Turn] -> NewRule
+iteratorThen :: (Update Turn -> Rule) -> [Update Turn] -> Rule
 iteratorThen f [] = error "no input is found"
 iteratorThen f [t] = f t
 iteratorThen f (t:ts) = f t >>> iteratorThen f ts
 
 -- | 
-iteratorSEQ :: (Update Turn -> NewRule) -> [Update Turn] -> NewRule
+iteratorSEQ :: (Update Turn -> Rule) -> [Update Turn] -> Rule
 iteratorSEQ f [] = error "no input is found"
 iteratorSEQ f [t] = f t
 iteratorSEQ f (t:ts) = f t >=> iteratorSEQ f ts
 
 -- | A condition for checking if the turn players action will apply a `Rule`
-changedState :: NewRule -> Condition Turn
+changedState :: Rule -> Condition Turn
 changedState r = Condition $ _changedState r
 
-_changedState :: NewRule -> Turn -> Game -> Bool
+_changedState :: Rule -> Turn -> Game -> Bool
 _changedState r t g = board g /= maybe [] board mg
     where mg = runRule r t g
 
@@ -170,7 +165,7 @@ _turnDirection :: (Int, Int) -> Turn -> Turn -> Turn
 _turnDirection (dx, dy) _ = _combineTurn $ Turn (Piece "" (Player "")) (Place (Pos dx dy))
 
 -- | A `Rule` for a draw
-gameDraw :: NewRule
+gameDraw :: Rule
 gameDraw = Rule $ Update makeDraw
 
 makeDraw :: Turn -> Game -> Game
@@ -178,7 +173,7 @@ makeDraw _ g | gameEnded g = g
              | otherwise   = g {gameEnded = True, winner = Nothing}
 
 -- | A `Rule` for the turn player winning
-currentPlayerWins :: NewRule
+currentPlayerWins :: Rule
 currentPlayerWins = Rule $ Update _currentPlayerWins
 
 _currentPlayerWins :: Turn -> Game -> Game
@@ -252,7 +247,6 @@ _tileBelowIsNotEmpty t@(Turn p _) g = do
     let maxY = length (board g) - 1 -- Bottom row
         (Pos x y) = turnToPos t g
     y >= maxY || not (_tileIsEmpty (Turn p (Place (Pos x (y+1)))) g)
-        -- this will be buggy with Step
 
 -- | Checks if the board is full
 boardIsFull :: Condition a
@@ -273,76 +267,11 @@ _inARow k _ g = do
     where
         b = board g
 
-
--- | TILL MR ALESTIG: DESSA ANVÄNDS INTE, GÖR MED DEM VAD DU VILL >:)
-checkSurrPieces :: Condition Turn
-checkSurrPieces = Condition _checkSurrPieces
-
-_checkSurrPieces :: Turn -> Game -> Bool
-_checkSurrPieces t@(Turn p _) g = a || c || d || e
-    where
-        (Pos x y) = turnToPos t g
-        b = board g
-        col = transpose b !! x
-        row = b !! y
-        a = checkSurrLine p (reverse (take y col)) || checkSurrLine p (drop (y+1) col)
-        c = checkSurrLine p (reverse (take x row)) || checkSurrLine p (drop (x+1) row)
-        d = checkSurrLine p (getDiagonalTiles (reverse b) (Pos x (length b - 1 - y))) || checkSurrLine p (getDiagonalTiles b (Pos x y))
-        e = checkSurrLine p (getDiagonalTiles (reverse (map reverse b)) (Pos (length b - 1 - x) (length b - 1 - y))) || checkSurrLine p (getDiagonalTiles (map reverse b) (Pos (length b - 1 - x) y))
-
-
-changeSurrLines :: NewRule
-changeSurrLines = Rule $ Update _changeSurrLines
-
-_changeSurrLines :: Turn -> Game -> Game
-_changeSurrLines t@(Turn p _) g = foldl (changeSurrLine t) g ts
-    where
-        (Pos x y) = turnToPos t g
-        b = board g
-        col = transpose b !! x
-        row = b !! y
-        ts = [reverse (take y col),
-              drop (y+1) col,
-              reverse (take x row),
-              drop (x+1) row,
-              getDiagonalTiles (reverse b) (Pos x (length b - 1 - y)),
-              getDiagonalTiles b (Pos x y),
-              getDiagonalTiles (reverse (map reverse b)) (Pos (length b - 1 - x) (length b - 1 - y)),
-              getDiagonalTiles (map reverse b) (Pos (length b - 1 - x) y)]
-
-
-checkSurrLine :: Piece -> [Tile] -> Bool
-checkSurrLine pie [] = False
-checkSurrLine pie ts
-    | length ts < 2 = False
-    | otherwise = noEmptyTiles && (pie == la) && pie /= ot
-    where
-        arr = concat $ take 2 (groupBy eqTile ts)
-        noEmptyTiles = " " `notElem` map show arr
-        (PieceTile la _) = last arr
-        (PieceTile ot _) = head arr
-
-changeSurrLine :: Turn -> Game -> [Tile] -> Game
-changeSurrLine t@(Turn p _) g tss@((PieceTile p2 pos):ts)
-    | p /= p2 && checkSurrLine p tss = changeSurrLine t (_placePiece (t {action = Place pos}) g) ts
-changeSurrLine _ g _ = g --error "changeSurrLine: Empty tile reached."
-
-pieceAtPos :: Pos -> Game -> Bool
-pieceAtPos pos g = case getTile (board g) pos of
-        (Empty _) -> False
-        _         -> True
-
--- | Gets a list of all diagonals of a certain length on the board
-getDiagonalTiles :: Board -> Pos -> [Tile]
-getDiagonalTiles b (Pos x y) = tail [getTile b (Pos (x+n) (y+n)) | n <- take (min(length b - y) (length (head b) - x)) [0..]]
-
 -- | Check if two tiles has the same piece on it, or if both tiles are empty 
 eqTile :: Tile -> Tile -> Bool
 eqTile (PieceTile p1 _) (PieceTile p2 _) = p1 == p2
 eqTile (Empty _) (Empty _) = True
 eqTile _ _ = False
-
--- checkSurrLine (Piece "O" (Player "A")) [Empty (1,1), PieceTile (Piece "X" (Player "B")) (Pos 1 2), PieceTile (Piece "O" (Player "A")) (Pos 1 3)]
 
 -- * Helper functions
 
@@ -350,7 +279,7 @@ eqTile _ _ = False
 countPiece :: Piece -> Board -> Int
 countPiece p b = length $ filter (samePiece p) (concat b)
 
-playerWithMostPiecesWins :: NewRule
+playerWithMostPiecesWins :: Rule
 playerWithMostPiecesWins = Rule $ Update _playerWithMostPiecesWins
 
 _playerWithMostPiecesWins :: Turn -> Game -> Game
@@ -375,7 +304,6 @@ playersWithMostPieces ps b = players
          where amounts = map length $ playerPieces <$> ps <*> [b]
                amounts' = zip ps amounts
                players = [player | (player, n) <- amounts', n >= maximum amounts]
-
 
 
 -- | Gets a list of all diagonals of a certain length on the board
@@ -410,7 +338,7 @@ samePiece :: Piece -> Tile -> Bool
 samePiece _ (Empty _) = False
 samePiece p (PieceTile p2 _) = p == p2
 
---------- Display functions ---------
+-- * Display functions
 
 -- | Prints a board in the terminal. It's pretty.
 prettyPrint :: Game -> IO ()
