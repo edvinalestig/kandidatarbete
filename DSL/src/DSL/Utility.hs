@@ -8,7 +8,7 @@ import DSL.Types
 
 
 
-
+-- * Turn
 
 -- | Create a `Turn`, with the action `Place`, on the specified coordinates
 placeTurn :: Piece -> Int -> Int -> Turn
@@ -18,12 +18,28 @@ placeTurn p x y = Turn p (Place (Pos x y))
 placeTurn' :: Piece -> Pos -> Turn
 placeTurn' p pos = Turn p (Place pos)
 
+-- | "Combines" two turns by adding the coordinates of the their `Action`, maybe poorly named
+combineTurn :: Turn -> Turn -> Turn
+combineTurn t1 t2@(Turn p _) = placeTurn' p (turnToPos t1 + turnToPos t2)
 
+
+-- * Tile
+
+-- | Extract the `Tile` from a `Board` and `Pos`
 getTile :: Board -> Pos -> Tile
 getTile b (Pos x y) = (b !! y) !! x
 
+-- | Extract the `Tile` from a `Board` and `Pos`. It calls `getTile`.
 turnGameToTile :: Turn -> Game -> Tile
 turnGameToTile t g = getTile (board g) (turnToPos t)
+
+
+-- * Bool
+
+-- | Checks if a tile is empty
+empty' :: Tile -> Bool
+empty' (Empty _) = True
+empty'  _        = False
 
 -- | Check if two tiles has the same piece on it, or if both tiles are empty 
 eqTile :: Tile -> Tile -> Bool
@@ -42,25 +58,25 @@ samePiece :: Piece -> Tile -> Bool
 samePiece _ (Empty _) = False
 samePiece p (PieceTile p2 _) = p == p2
 
+-- | Extract the @Player@ of a @Piece@
 getPlayer :: Piece -> Player
 getPlayer (Piece _ p) = p
 
+
+-- * Pos
+
+-- | Extract the `Pos` of a `Tile`
 getPos :: Tile -> Pos
 getPos (PieceTile _ pos) = pos
 getPos (Empty pos) = pos
 
--- | "Combines" two turns by adding the coordinates of the their `Action`, maybe poorly named
-combineTurn :: Turn -> Turn -> Turn
-combineTurn t1 t2@(Turn p _) = placeTurn' p (turnToPos t1 + turnToPos t2)
-
+-- | Extract resulting `Pos` of a @Turn@.
 turnToPos :: Turn -> Pos
 turnToPos (Turn _ (Place pos))  = pos
 turnToPos (Turn _ (Move _ pos)) = pos
 
--- | Checks if a tile is empty
-empty' :: Tile -> Bool
-empty' (Empty _) = True
-empty'  _        = False
+
+-- * Other
 
 -- | Replaces an elemenent with the input at a given index
 replaceAtIndex :: Int -> a -> [a] -> [a]    
