@@ -77,7 +77,7 @@ rectBoard w h = [[Empty (Pos x y) | x <- [0..w-1]] | y <- [0..h-1]]
 -- | Creates an rectangular board with pieces in certain locations
 initRectBoard :: Int -> Int -> [((Int, Int), Piece)] -> Board
 initRectBoard w h []            = [[Empty (Pos x y) | x <- [0..w-1]] | y <- [0..h-1]]
-initRectBoard w h (((x,y), pi):ps) = board $ _placePiece (Turn pi (Place (Pos (x-1) (y-1)))) $ emptyGame {board = initRectBoard w h ps}
+initRectBoard w h (((x,y), p):as) = board $ _placePiece (placeTurn p (x-1) (y-1)) $ emptyGame {board = initRectBoard w h as}
 
 
 -- * Rules
@@ -136,10 +136,17 @@ turnUpRight = Update $ _turnDirection (1, -1)
 turnDownRight :: Update Turn
 turnDownRight = Update $ _turnDirection (1, 1)
 
+-- | A list containing all straight directions
+straightDirections :: [Update Turn]
+straightDirections = [turnDown, turnUp, turnLeft, turnRight]
+
+-- | A list containing all diagonal directions
+diagonalDirections :: [Update Turn]
+diagonalDirections = [turnDownLeft, turnUpLeft, turnUpRight, turnDownRight]
+
 -- | A list containing all directions
 allDirections :: [Update Turn]
-allDirections = [turnDown, turnUp, turnLeft,
-                    turnRight, turnDownLeft, turnUpLeft, turnUpRight, turnDownRight]
+allDirections = straightDirections ++ diagonalDirections
 
 -- | 
 iteratorThen :: (Update Turn -> Rule) -> [Update Turn] -> Rule
@@ -185,28 +192,17 @@ currentPlayer g = Just $ head (players g)
 
 -- | A `Condition` for checking if a tile belongs to the turn player
 allyTile :: Condition Turn
-allyTile = Condition _allyTile
-
-_allyTile :: Turn -> Game -> Bool
-_allyTile t@(Turn p _) g = do
-    case getTile (board g) pos of
-        (PieceTile p' _) -> p == p'
-        _                -> False
-    where
-        pos = turnToPos t g
+allyTile = Condition $ comparePieceOnTile (==)
 
 -- | A `Condition` for checking if a tile does not belong to the turn player
 enemyTile :: Condition Turn
-enemyTile = Condition _enemyTile
+enemyTile = Condition $ comparePieceOnTile (/=)
 
-_enemyTile :: Turn -> Game -> Bool
-_enemyTile t@(Turn p _) g = do
-    case getTile (board g) pos of
-        (PieceTile p' _) -> p /= p'
+comparePieceOnTile :: (Piece -> Piece -> Bool) -> Turn -> Game -> Bool
+comparePieceOnTile f t@(Turn p _) g =
+    case turnGameToTile t g of
+        (PieceTile p' _) -> p `f` p'
         _                -> False
-    where
-        pos = turnToPos t g
-
 
 -- | A condition that is always true
 trueCond :: Condition Turn
@@ -214,7 +210,7 @@ trueCond = Condition (\t g -> True)
 
 -- | A condition that is always false
 falseCond :: Condition Turn
-falseCond = Condition (\t g -> True)
+falseCond = Condition (\t g -> False)
 
 
 -- | Checks if a `Tile` at a given position is empty
@@ -234,19 +230,16 @@ tileIsEmpty = Condition _tileIsEmpty
 _tileIsEmpty :: Turn -> Game -> Bool
 _tileIsEmpty t g = empty' (turnGameToTile t g)
 
-
-turnGameToTile :: Turn -> Game -> Tile
-turnGameToTile t g = getTile (board g) (turnToPos t g)
-
 -- | A rule for checking if the tile below a tile is empty
 tileBelowIsNotEmpty :: Condition Turn
 tileBelowIsNotEmpty = Condition _tileBelowIsNotEmpty
 
 _tileBelowIsNotEmpty :: Turn -> Game -> Bool
-_tileBelowIsNotEmpty t@(Turn p _) g = do
-    let maxY = length (board g) - 1 -- Bottom row
+_tileBelowIsNotEmpty t@(Turn p _) g =
+    y >= maxY || not (_tileIsEmpty (placeTurn p x (y+1)) g)
+    where
+        maxY = length (board g) - 1 -- Bottom row
         (Pos x y) = turnToPos t g
-    y >= maxY || not (_tileIsEmpty (Turn p (Place (Pos x (y+1)))) g)
 
 -- | Checks if the board is full
 boardIsFull :: Condition a

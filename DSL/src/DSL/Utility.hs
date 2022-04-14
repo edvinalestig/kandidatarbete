@@ -5,7 +5,9 @@ Description : A Haskell module containing various utility functions
 module DSL.Utility (
     placePiece,
     _placePiece,
+    placeTurn,
     getTile,
+    turnGameToTile,
     getPlayer,
     getPos,
     turnToPos,
@@ -26,9 +28,21 @@ _placePiece t@(Turn p _) g = g {board = replaceAtIndex y newRow (board g)}
           tile = PieceTile p (Pos x y)
           newRow = replaceAtIndex x tile (board g !! y)
 
+placeTurn :: Piece -> Int -> Int -> Turn
+placeTurn p x y = Turn p (Place (Pos x y))
+
 
 getTile :: Board -> Pos -> Tile
 getTile b (Pos x y) = (b !! y) !! x
+
+-- | Check if two tiles has the same piece on it, or if both tiles are empty 
+eqTile :: Tile -> Tile -> Bool
+eqTile (PieceTile p1 _) (PieceTile p2 _) = p1 == p2
+eqTile (Empty _) (Empty _) = True
+eqTile _ _ = False
+
+turnGameToTile :: Turn -> Game -> Tile
+turnGameToTile t g = getTile (board g) (turnToPos t g)
 
 getPlayer :: Piece -> Player
 getPlayer (Piece _ p) = p
