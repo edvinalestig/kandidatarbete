@@ -134,15 +134,15 @@ iteratorSEQ f (t:ts) = f t >=> iteratorSEQ f ts
 -- * Conditions
 {- $condition -}
 
--- | A condition that is always true
+-- | A condition that is always 'True'
 trueCond :: Condition Turn
 trueCond = Condition (\t g -> True)
 
--- | A condition that is always false
+-- | A condition that is always 'False'
 falseCond :: Condition Turn
 falseCond = Condition (\t g -> False)
 
--- | Checks if a `Tile` at a given position is empty
+-- | Checks if a `Tile` is within the boundaries of the board
 isWithinBoard :: Condition Turn
 isWithinBoard = Condition _isWithinBoard
 
@@ -150,15 +150,15 @@ isWithinBoard = Condition _isWithinBoard
 boardIsFull :: Condition a
 boardIsFull = Condition _boardIsFull
 
--- | A condition for checking if the turn players action will apply a `Rule`
+-- | A condition for checking if a 'Rule' would change the state of the board. 
 changedState :: Rule -> Condition Turn
 changedState r = Condition $ _changedState r
 
--- | A `Condition` for checking if a tile belongs to the turn player
+-- | A `Condition` for checking if the piece (on given tile) belongs to the current player
 allyTile :: Condition Turn
 allyTile = Condition $ _comparePieceOnTile (==)
 
--- | A `Condition` for checking if a tile does not belong to the turn player
+-- | A `Condition` for checking if the piece (on given tile) doesn't belong to the current player
 enemyTile :: Condition Turn
 enemyTile = Condition $ _comparePieceOnTile (/=)
 
@@ -175,7 +175,7 @@ noPlayerHasMoves = Condition _noPlayerHasMoves
 inARow :: Int -> Condition Turn
 inARow k = Condition $ _inARow k
 
--- | A rule for checking if the tile below a tile is empty
+-- | A rule for checking if the tile below another tile is empty
 tileBelowIsNotEmpty :: Condition Turn
 tileBelowIsNotEmpty = Condition _tileBelowIsNotEmpty
 
