@@ -23,8 +23,10 @@ module DSL.Lib (
     gameDraw,
     currentPlayerWins,
     playerWithMostPiecesWins,
-    iteratorThen,
-    iteratorSEQ,
+    forAllDir,
+    forEachDir,
+    doUntil,
+    replaceUntil,
 
     -- * Conditions
     -- $condition
@@ -117,21 +119,56 @@ currentPlayerWins = Rule $ Update _currentPlayerWins
 playerWithMostPiecesWins :: Rule
 playerWithMostPiecesWins = Rule $ Update _playerWithMostPiecesWins
 
--- | A `Rule` that applies the lambda function to the `Game`
--- state for each `Turn` that is sent in. When a rule fails
--- the last successful result then given as a result.
-iteratorThen :: (Update Turn -> Rule) -> [Update Turn] -> Rule
-iteratorThen f [] = error "no input is found"
-iteratorThen f [t] = f t
-iteratorThen f (t:ts) = f t >>> iteratorThen f ts
+-- | For each direction, apply every 'Rule' once and return the result.
+-- If any rule fail to apply the result is ignored.
+--
+-- Example use:
+--
+-- > forAllDir diagonalDirections (replaceUntil enemyTile allyTile)
+--
+-- The example replaces iterates over the diagonal directions
+-- and replaces each enemyTile until an allyTile is met.
+forAllDir :: [Update Turn] -> (Update Turn -> Rule) -> Rule
+forAllDir [] f = error "no input is found"
+forAllDir [t] f = f t
+forAllDir (t:ts) f = f t >=> forAllDir ts f
 
--- | A `Rule` that applies the lambda function to the `Game`
--- state for each `Turn` that is sent in. If any rule fail
--- the result is ignored.
-iteratorSEQ :: (Update Turn -> Rule) -> [Update Turn] -> Rule
-iteratorSEQ f [] = error "no input is found"
-iteratorSEQ f [t] = f t
-iteratorSEQ f (t:ts) = f t >=> iteratorSEQ f ts
+-- | For each direction, apply each 'Rule' once and return the result.
+-- If any rule fail to apply it will simply ignore that rule and continue with the next one.
+--
+-- Example use:
+--
+-- > forEachDir diagonalDirections (replaceUntil enemyTile allyTile)
+--
+-- The example replaces iterates over the diagonal directions
+-- and replaces each enemyTile until an allyTile is met.
+forEachDir :: [Update Turn] -> (Update Turn -> Rule) -> Rule
+forEachDir [] f = error "no input is found"
+forEachDir [t] f = f t
+forEachDir (t:ts) f = f t >>> forEachDir ts f
+
+-- | Iterate a 'Rule' until a 'Condition' is met over an @'Update' 'Turn'@
+--
+-- Example usage:
+--
+-- > doUntil (If emptyTile placePiece) enemyTile
+--
+-- The example replaces the next tile, if empty, with an ally tile.
+-- If the condition fails before reaching an enemyTile, the result is ignored.
+doUntil :: Rule -> Condition Turn -> Update Turn -> Rule
+doUntil r c f = IterateUntil (TurnRule f r) c
+
+-- | Replace a tile until another tile in the specified direction 
+-- 
+-- Example usage:
+--
+-- > replaceUntil enemyTile allyTile
+--
+-- The example replaces every enemyTile until the first allyTile in the specified direction.
+-- If another tile is reached before the end condition is met, the result is ignored.
+replaceUntil :: Condition Turn -> Condition Turn -> Update Turn -> Rule
+replaceUntil c = doUntil (If c placePiece)
+
 
 
 -- * Conditions

@@ -87,17 +87,14 @@ othello = emptyGame {
     ],
     rules = [
         If (emptyTile `AND` changedState othelloRule)
-            (placePiece >>> othelloRule)
+            placePiece >>> othelloRule
     ],
     endConditions = [
         If noPlayerHasMoves playerWithMostPiecesWins
     ]
 }
 
--- Currently contains a lamba function, change for later by making less general?
-othelloRule :: Rule
-othelloRule = iteratorThen (\t -> 
-    IterateUntil (TurnRule t (If enemyTile placePiece)) allyTile) allDirections
+othelloRule = forEachDir allDirections (replaceUntil enemyTile allyTile)
 
 othello2 :: Game
 othello2 = emptyGame {
@@ -119,7 +116,7 @@ othello2 = emptyGame {
     ],
     rules = [
         If (emptyTile `AND` changedState othelloRule)
-            (placePiece >>> othelloRule)
+            placePiece >>> othelloRule
     ],
     endConditions = [
         If noPlayerHasMoves playerWithMostPiecesWins
