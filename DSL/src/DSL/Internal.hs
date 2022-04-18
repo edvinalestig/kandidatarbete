@@ -66,19 +66,15 @@ _placePiece t@(Turn p _) g = g {board = replaceAtIndex y newRow (board g)}
 
 -- | Set the game state to a draw
 _makeDraw :: Turn -> Game -> Game
-_makeDraw _ g | gameEnded g = g
-              | otherwise   = g {gameEnded = True, winner = Nothing}
+_makeDraw _ = updateWinner drawGame
 
 -- | Update the game state such that the current player wins
 _currentPlayerWins :: Turn -> Game -> Game
-_currentPlayerWins _ g | gameEnded g = g
-                       | otherwise   = g {gameEnded = True, winner = currentPlayer g}
-    where
-        currentPlayer g = Just $ head (players g)
+_currentPlayerWins _ = updateWinner $ Just . head . players
 
 -- | Updates the game state so that the player with most pieces wins
 _playerWithMostPiecesWins :: Turn -> Game -> Game
-_playerWithMostPiecesWins _ g = g {winner = playerWithMostPieces g}
+_playerWithMostPiecesWins _ = updateWinner playerWithMostPieces
 
 
 -- *  Conditions
@@ -110,7 +106,7 @@ _comparePieceOnTile f t@(Turn p _) g =
 
 -- | Return whether or not the tile the turn is refering to is empty.
 _emptyTile :: Turn -> Game -> Bool
-_emptyTile t g = empty' (turnGameToTile t g)
+_emptyTile t = empty' . turnGameToTile t
 
 -- | Returns `True` if no player has any valid moves, `False` otherwise
 _noPlayerHasMoves :: Turn -> Game -> Bool
@@ -145,6 +141,13 @@ _turnDirection (dx, dy) (Turn p _) = combineTurn $ placeTurn p dx dy
 -- * Helper functions
 {- helper -}
 
+
+drawGame :: Game -> Maybe a
+drawGame _ = Nothing
+
+-- | Update the game state with the winner
+updateWinner :: (Game -> Maybe Player) -> Game -> Game
+updateWinner f g = if gameEnded g then g else g {winner = f g, gameEnded = True}
 
 -- | Return a 'Maybe' containing the player with most pieces on the board
 -- currently. It returns 'Nothing' if multiple 'Player' has the most pieces.
