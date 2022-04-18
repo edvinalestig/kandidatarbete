@@ -54,7 +54,7 @@ playGame g = do
         else
             playGame newGame
 
--- | Plays one turn
+-- | Plays one turn and apply each rule.
 playTurn :: Game -> Piece -> Pos -> Game
 playTurn g p pos | not $ isValidInput turn g = g
                  | otherwise = postPlayTurn turn newGame
@@ -62,6 +62,7 @@ playTurn g p pos | not $ isValidInput turn g = g
         newGame = applyRules turn g rules
         turn = placeTurn' p pos
 
+-- | After a turn is done, apply the end conditions and cycle the players.
 postPlayTurn :: Turn -> Game -> Game
 postPlayTurn t g = newGame {players = cyclePlayers $ players newGame}
     where

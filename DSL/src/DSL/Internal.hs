@@ -69,12 +69,14 @@ _makeDraw :: Turn -> Game -> Game
 _makeDraw _ g | gameEnded g = g
               | otherwise   = g {gameEnded = True, winner = Nothing}
 
+-- | Update the game state such that the current player wins
 _currentPlayerWins :: Turn -> Game -> Game
 _currentPlayerWins _ g | gameEnded g = g
                        | otherwise   = g {gameEnded = True, winner = currentPlayer g}
     where
         currentPlayer g = Just $ head (players g)
 
+-- | Updates the game state so that the player with most pieces wins
 _playerWithMostPiecesWins :: Turn -> Game -> Game
 _playerWithMostPiecesWins _ g = g {winner = playerWithMostPieces g}
 
@@ -83,24 +85,30 @@ _playerWithMostPiecesWins _ g = g {winner = playerWithMostPieces g}
 {- $condition -}
 
 
+-- Check wheter or not a 'Turn' is within the boundaries of our board.
 _isWithinBoard :: Turn -> Game -> Bool
 _isWithinBoard t g = x >= 0 && x < (length . head . board) g && y >= 0 && y < (length . board) g
     where
         (Pos x y) = turnToPos t
 
+-- | Return whether or not the board is full, such that no tiles are empty.
 _boardIsFull :: a -> Game -> Bool
 _boardIsFull _ g = " " `notElem` concatMap (map show) (board g)
 
+-- | Return whether or not a 'Rule' changes the board at all. 
 _changedState :: Rule -> Turn -> Game -> Bool
 _changedState r t g = board g /= maybe [] board mg
     where mg = runRule r t g
 
+-- | Takes in a function that compares two pieces.
+-- The first piece is given as input, the second piece is located on the board.
 _comparePieceOnTile :: (Piece -> Piece -> Bool) -> Turn -> Game -> Bool
 _comparePieceOnTile f t@(Turn p _) g =
     case turnGameToTile t g of
         (PieceTile p' _) -> p `f` p'
         _                -> False
 
+-- | Return whether or not the tile the turn is refering to is empty.
 _emptyTile :: Turn -> Game -> Bool
 _emptyTile t g = empty' (turnGameToTile t g)
 
@@ -108,12 +116,15 @@ _emptyTile t g = empty' (turnGameToTile t g)
 _noPlayerHasMoves :: Turn -> Game -> Bool
 _noPlayerHasMoves _ g = not $ any (playerHasMoves g) (players g)
 
+-- | Return whether or not 'k' in a row pieces, in all directions,
+-- can be found anywhere on the board.
 _inARow :: Int -> Turn -> Game -> Bool
 _inARow k _ g = any allEQ everything
     where
         everything = getRows b k ++ getColumns b k ++ getDiagonals b k
         b = board g
 
+-- | Return whether or not the tile below is empty.
 _tileBelowIsNotEmpty :: Turn -> Game -> Bool
 _tileBelowIsNotEmpty t@(Turn p _) g =
     y >= maxY || not (_emptyTile (placeTurn p x (y+1)) g)
@@ -126,6 +137,7 @@ _tileBelowIsNotEmpty t@(Turn p _) g =
 {- $update -}
 
 
+-- | Return the resulting 'Turn' after shifting the input 'Turn' by a given amount
 _turnDirection :: (Int, Int) -> Turn -> Turn -> Turn
 _turnDirection (dx, dy) (Turn p _) = combineTurn $ placeTurn p dx dy
 
@@ -134,6 +146,8 @@ _turnDirection (dx, dy) (Turn p _) = combineTurn $ placeTurn p dx dy
 {- helper -}
 
 
+-- | Return a 'Maybe' containing the player with most pieces on the board
+-- currently. It returns 'Nothing' if multiple 'Player' has the most pieces.
 playerWithMostPieces :: Game -> Maybe Player
 playerWithMostPieces game | length ps == 1 = Just $ head ps
                           | otherwise      = Nothing
