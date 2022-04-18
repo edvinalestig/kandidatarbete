@@ -118,13 +118,16 @@ playerWithMostPiecesWins :: Rule
 playerWithMostPiecesWins = Rule $ Update _playerWithMostPiecesWins
 
 -- | A `Rule` that applies the lambda function to the `Game`
--- state for each `Turn` that is sent in
+-- state for each `Turn` that is sent in. When a rule fails
+-- the last successful result then given as a result.
 iteratorThen :: (Update Turn -> Rule) -> [Update Turn] -> Rule
 iteratorThen f [] = error "no input is found"
 iteratorThen f [t] = f t
 iteratorThen f (t:ts) = f t >>> iteratorThen f ts
 
--- | 
+-- | A `Rule` that applies the lambda function to the `Game`
+-- state for each `Turn` that is sent in. If any rule fail
+-- the result is ignored.
 iteratorSEQ :: (Update Turn -> Rule) -> [Update Turn] -> Rule
 iteratorSEQ f [] = error "no input is found"
 iteratorSEQ f [t] = f t
