@@ -25,6 +25,8 @@ dependencies:
 - split
 - QuickCheck
 - hspec
+- containers
+- monad-loops
 
 library:
   source-dirs: src

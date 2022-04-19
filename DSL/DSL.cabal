@@ -26,9 +26,12 @@ source-repository head
 library
   exposed-modules:
       DSL
+      DSL.Internal
       DSL.Lib
+      DSL.Run
       DSL.Types
       DSL.Utility
+      TestGames
   other-modules:
       Paths_DSL
   hs-source-dirs:
@@ -37,7 +40,9 @@ library
       MonadRandom
     , QuickCheck
     , base >=4.7 && <5
+    , containers
     , hspec
+    , monad-loops
     , split
   default-language: Haskell2010
 
@@ -53,7 +58,9 @@ executable DSL-exe
     , MonadRandom
     , QuickCheck
     , base >=4.7 && <5
+    , containers
     , hspec
+    , monad-loops
     , split
   default-language: Haskell2010
 
@@ -70,6 +77,8 @@ test-suite DSL-test
     , MonadRandom
     , QuickCheck
     , base >=4.7 && <5
+    , containers
     , hspec
+    , monad-loops
     , split
   default-language: Haskell2010

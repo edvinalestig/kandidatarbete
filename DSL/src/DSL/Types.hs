@@ -5,7 +5,13 @@ Description : A Haskell module containing all the types used in the DSL
 
 module DSL.Types (
     Game (..),
+    (>=>),
+    (>>>),
     Rule (..),
+    Update (..),
+    Condition (..),
+    Turn (..),
+    Action (..),
     Pos (..),
     EndCondition (..),
     Player (..),
@@ -22,34 +28,64 @@ data Game = Game
     {
         board         :: Board,
         pieces        :: [Piece],
-        dice          :: [Die],
         players       :: [Player],
         rules         :: [Rule],
-        endConditions :: [EndCondition]
+        endConditions :: [Rule],
+        winner        :: Maybe Player,
+        gameEnded     :: Bool,
+        dispFunction  :: Game -> IO ()
     }
 
 
--- | A rule object with a function which has to be fulfilled in
---   order to be able to place a piece on the board.
-data Rule = PlaceRule  (Piece -> Pos -> Board -> Bool)
-          | UpdateRule (Piece -> Pos -> Board -> Board)
+-- | Represent the input a user can provide,
+-- what piece they act on and what they'll do with it
+data Turn = Turn
+    {
+        piece  :: Piece,
+        action :: Action
+    }
 
--- data Action = Place Pos
---             | Move Pos Pos Piece
--- tileIsEmpty >>= tileBelowIsNotEmpty >>= placeTile
--- newType Rule = PlaceRule ([Restriction], [Move])
--- newType Rule = PlaceRule (Board -> [Restriction] -> [Action] -> Maybe Board)
+-- | Represent a move that a piece can make
+data Action = Place Pos | Move Pos Pos
 
--- newType Restriction = Restriction -> Board -> Bool
--- newType Move = Action -> Board -> Board
+-- | Update
+data Update t = Update (Turn -> t -> t)
+              | (Update t) `COMBINE` (Update t)
+
+
+-- | Sequences two rules, 
+--   if one results in `Nothing` then the result will be `Nothing`
+(>=>) :: Rule -> Rule -> Rule
+(>=>) = SEQ
+
+-- | Sequences two rules,
+--   if one results in `Nothing` it will take the previous `Just` and continue
+(>>>) :: Rule -> Rule -> Rule
+(>>>) = THEN
+
+-- | Rule
+data Rule = Rule      (Update Game)
+          | TurnRule  (Update Turn) Rule
+          | If     (Condition Turn) Rule
+          | IfElse (Condition Turn) Rule Rule
+          | Rule `SEQ`   Rule
+          | Rule `THEN`  Rule
+          | IterateUntil Rule (Condition Turn)
+
+-- | Condition
+data Condition a = Condition (a -> Game -> Bool)
+                 | (Condition a) `AND` (Condition a)
+                 | (Condition a) `OR`  (Condition a)
+                 | NOT (Condition a)
+
 
 -- | A simple vector object containing a x and a y value
-data Pos = Pos Int Int 
+data Pos = Pos Int Int
     deriving (Eq, Show)
 
 -- | A record containing conditions to be met for the game to end.
 --   It can have multiple functions for draws and wins. 
-type EndCondition = (Game -> Maybe Player, Game -> Bool)
+type EndCondition = (Game -> Maybe Player, Rule) -- Game -> Bool
 
 -- | A player object with a name
 newtype Player = Player String
@@ -58,10 +94,10 @@ newtype Player = Player String
 -- | A piece object with a name/identifier and the player owning it
 data Piece = Piece String Player
     deriving (Eq)
-    
+
 -- | A tile object which can either be empty or it can contain a piece.
 --   `pos` might be removed.
-data Tile = PieceTile Piece Pos | Empty Pos -- Can Pos be removed?
+data Tile = PieceTile Piece Pos | Empty Pos
     deriving (Eq)
 
 -- | The board contains a list of rows of tiles. 
@@ -80,38 +116,28 @@ instance Show Tile where
 instance Show Piece where
     show (Piece s _) = s
 
+instance Num Pos where
+    (Pos x y) + (Pos x' y') = Pos (x+x') (y+y')
+
 
 -- * Testing
 
+-- | A Generator for printable strings
+printableStringGen :: Gen String
+printableStringGen = getASCIIString <$> (arbitrary :: Gen ASCIIString)
+
 instance Arbitrary Pos where
     arbitrary = Pos <$> (arbitrary :: Gen Int) <*> (arbitrary :: Gen Int)
+
 instance Arbitrary Player where
     arbitrary = Player <$> printableStringGen
-
--- | A Generator for printable strings
-printableStringGen :: Gen String 
-printableStringGen = getASCIIString <$> (arbitrary :: Gen ASCIIString)
--- printableString = arbitraryASCIIChar   use if Char
 
 instance Arbitrary Piece where
     arbitrary = Piece <$> printableStringGen <*> (arbitrary :: Gen Player)
 
 instance Arbitrary Tile where
     arbitrary = frequency [
-        (7, PieceTile <$> arbitrary <*> arbitrary),
-        (3, Empty <$> arbitrary)
+            (7, PieceTile <$> arbitrary <*> arbitrary),
+            (3, Empty <$> arbitrary)
         ]
-
--- instance Arbitrary Board where
---     arbitrary = vectorOf 10 $ vectorOf 10 (arbitrary :: Gen Tile)
-
-{- rectBoard :: Int -> Int -> Board
-rectBoard w h = [[Empty (Pos x y) | x <- [0..w-1]] | y <- [0..h-1]] -}
-
-
-
-{- nonNegative :: Gen Integer
-nonNegative = do n <- arbitrary
-                 return (abs n) -}
-
 
