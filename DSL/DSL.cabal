@@ -68,6 +68,7 @@ test-suite DSL-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      OthelloTests
       TicTacToeTests
       Paths_DSL
   hs-source-dirs:

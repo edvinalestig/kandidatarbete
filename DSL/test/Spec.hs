@@ -8,7 +8,7 @@ import DSL.Internal
 import DSL
 import TestGames
 import TicTacToeTests
-import Data.List (nub)
+import OthelloTests
 
 
 main :: IO ()
@@ -35,6 +35,13 @@ main = hspec $ do
             prop_tictactoe_player2canWin
         prop "verify that the game has not ended after 4 random moves" $
             forAll arbitraryTicTacToePos prop_tictactoe_gameNotEndedAfter4Moves
+    describe "Othello" $ 
+        describe "Verifies various functionality for the game" $ do
+        prop "verify that it flips pieces in straight lines with multiple for each line" 
+            prop_othello_correctChangesStraightLines
+        prop "verify that it flips pieces in diagonal lines with multiple for each line" 
+            prop_othello_correctChangesDiagonalLines
+
 
 -- | Verify that the board is a rectangle and of correct width and height
 prop_rectBoard_isCorrectSize :: Int -> Int -> Bool
