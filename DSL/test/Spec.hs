@@ -7,22 +7,24 @@ import DSL.Utility
 import DSL.Internal
 import DSL
 import TestGames
-import Data.Maybe (isNothing, fromJust)
+import TicTacToeTests
 import Data.List (nub)
 
 
 main :: IO ()
 main = hspec $ do
-    describe "Lib" $ do
-        prop "rectBoard creates a rectangular board of correct width and height" $
+    describe "Lib/Internal" $ 
+        describe "General function testing within Lib.hs and Internal.hs" $ do
+        prop "verify that rectBoard creates a rectangular board of correct width and height" $
             \w h -> prop_rectBoard_isCorrectSize w h
         prop "verify that the amount of diagonals is equal to what it should be" $
             \w h k -> prop_getDiagonals_correctAmount w h k
-        prop "check that the amount of columns is equal to the amount of rows of a certain size on a square board" $
+        prop "verify that the amount of columns is equal to the amount of rows of a certain size on a square board" $
             \s k -> prop_getRows_equalsOnSquareBoards_getColumns s k
-    describe "Tic-Tac-Toe" $ do
+    describe "Tic-tac-toe" $ 
+        describe "Verifies various functionality for the game" $ do
         prop "verify correct placement of pieces" $
-            again prop_correctPlacementTicTacToe
+            again prop_tictactoe_correctPlacement
         prop "verify that when the board is full and no one has three in a row, no one is a winner"
             prop_tictactoe_noWinnerWhenDraw
         prop "verify that the game has ended when there is a draw"
@@ -33,82 +35,6 @@ main = hspec $ do
             prop_tictactoe_player2canWin
         prop "verify that the game has not ended after 4 random moves" $
             forAll arbitraryTicTacToePos prop_tictactoe_gameNotEndedAfter4Moves
-
-prop_tictactoe_gameNotEndedAfter4Moves :: Pos -> Pos -> Pos -> Pos -> Property 
-prop_tictactoe_gameNotEndedAfter4Moves t1 t2 t3 t4 = 
-    length (nub [t1,t2,t3,t4]) == 4 ==> do
-        let g1 = tictactoe 
-            g2  = playTurn g1 p1 t1
-            g3  = playTurn g2 p2 t2
-            g4  = playTurn g3 p1 t3
-            g5  = playTurn g4 p2 t4
-        gameEnded g5 === False .&&. isNothing (winner g5)
-        where
-            p1 = head $ pieces tictactoe  
-            p2 = last $ pieces tictactoe  
-
-prop_tictactoe_player1canWin :: Property
-prop_tictactoe_player1canWin = do
-    let g1  = tictactoe 
-        g2  = playTurn g1 p1 (Pos 0 0)
-        g3  = playTurn g2 p2 (Pos 0 1)
-        g4  = playTurn g3 p1 (Pos 1 1)
-        g5  = playTurn g4 p2 (Pos 1 2)
-        g6  = playTurn g5 p1 (Pos 2 2)
-    fromJust (winner g6) === player1 .&&. gameEnded g6
-    where
-        p1 = head $ pieces tictactoe  
-        p2 = last $ pieces tictactoe  
-        player1 = head $ players tictactoe
-
-prop_tictactoe_player2canWin :: Property
-prop_tictactoe_player2canWin = do
-    let g1  = tictactoe 
-        g2  = playTurn g1 p1 (Pos 0 0)
-        g3  = playTurn g2 p2 (Pos 1 0)
-        g4  = playTurn g3 p1 (Pos 2 2)
-        g5  = playTurn g4 p2 (Pos 1 1)
-        g6  = playTurn g5 p1 (Pos 2 0)
-        g7  = playTurn g6 p2 (Pos 1 2)
-    fromJust (winner g7) === player2 .&&. gameEnded g7
-    where
-        p1 = head $ pieces tictactoe  
-        p2 = last $ pieces tictactoe  
-        player2 = last $ players tictactoe
-
-prop_tictactoe_noWinnerWhenDraw :: Property
-prop_tictactoe_noWinnerWhenDraw = do
-    let g1  = tictactoe 
-        g2  = playTurn g1 p1 (Pos 0 0)
-        g3  = playTurn g2 p2 (Pos 0 1)
-        g4  = playTurn g3 p1 (Pos 1 1)
-        g5  = playTurn g4 p2 (Pos 2 2)
-        g6  = playTurn g5 p1 (Pos 2 0)
-        g7  = playTurn g6 p2 (Pos 0 2)
-        g8  = playTurn g7 p1 (Pos 1 2)
-        g9  = playTurn g8 p2 (Pos 1 0)
-        g10 = playTurn g9 p1 (Pos 2 1)
-    isNothing (winner g10) === True
-    where
-        p1 = head $ pieces tictactoe  
-        p2 = last $ pieces tictactoe  
-
-prop_tictactoe_gameEndsWhenDraw :: Property 
-prop_tictactoe_gameEndsWhenDraw = do
-    let g1  = tictactoe 
-        g2  = playTurn g1 p1 (Pos 0 0)
-        g3  = playTurn g2 p2 (Pos 0 1)
-        g4  = playTurn g3 p1 (Pos 1 1)
-        g5  = playTurn g4 p2 (Pos 2 2)
-        g6  = playTurn g5 p1 (Pos 2 0)
-        g7  = playTurn g6 p2 (Pos 0 2)
-        g8  = playTurn g7 p1 (Pos 1 2)
-        g9  = playTurn g8 p2 (Pos 1 0)
-        g10 = playTurn g9 p1 (Pos 2 1)
-    gameEnded g10 === True
-    where
-        p1 = head $ pieces tictactoe  
-        p2 = last $ pieces tictactoe       
 
 -- | Verify that the board is a rectangle and of correct width and height
 prop_rectBoard_isCorrectSize :: Int -> Int -> Bool
@@ -138,35 +64,6 @@ prop_getRows_equalsOnSquareBoards_getColumns s' k' = k <= s ==> length rows == l
     board = rectBoard s s
     rows = getRows board k
     cols = getColumns board k
-
--- | Tries to place a piece on a random tile on a random board
---   It checks whether it changes the game state according to
---   the rules of tictactoe.
-prop_correctPlacementTicTacToe :: Property
-prop_correctPlacementTicTacToe = ioProperty $ do
-    b <- generate arbitraryTicTacToeBoard
-    let game = tictactoe {
-        board = b
-    }
-    x <- generate $ elements [0..2]
-    y <- generate $ elements [0..2]
-    let pos = Pos x y
-    piece <- generate . elements $ pieces game
-    let g = playTurn game piece pos
-
-    if empty' (getTile (board game) pos) then
-        return $ getTile (board g) pos === PieceTile piece pos 
-                 .&&. players g =/= players game
-    else
-        return $ board g === board game .&&. players g === players game
-
--- | A generator for a random Tic-Tac-Toe board
-arbitraryTicTacToeBoard :: Gen Board
-arbitraryTicTacToeBoard = vectorOf 3 $ vectorOf 3 arbitrary
-
--- | A generator for a random position on a Tic-Tac-Toe board
-arbitraryTicTacToePos :: Gen Pos
-arbitraryTicTacToePos = Pos <$> elements [0..2] <*> elements [0..2]
 
 
 
