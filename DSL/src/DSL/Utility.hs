@@ -33,6 +33,10 @@ getTile b (Pos x y) = (b !! y) !! x
 turnGameToTile :: Turn -> Game -> Tile
 turnGameToTile t g = getTile (board g) (turnToPos t)
 
+-- | Extract the `Tile` from a `Board` and `Pos`. It calls `getTile`.
+turnGameToTile' :: Turn -> Game -> Tile
+turnGameToTile' t g = getTile (board g) (turnToPos' t)
+
 
 -- * Bool
 
@@ -62,6 +66,11 @@ samePiece p (PieceTile p2 _) = p == p2
 getPlayer :: Piece -> Player
 getPlayer (Piece _ p) = p
 
+-- | Helper function to check if a 'Turn' results in a position within the board's boundaries.
+isWithinBoard :: Turn -> Game -> Bool
+isWithinBoard t g = isWithinBoard' (turnToPos' t) g && isWithinBoard' (turnToPos t) g
+    where
+        isWithinBoard' (Pos x y) g = x >= 0 && x < (length . head . board) g && y >= 0 && y < (length . board) g
 
 -- * Pos
 
@@ -73,7 +82,12 @@ getPos (Empty pos) = pos
 -- | Extract resulting `Pos` of a @Turn@.
 turnToPos :: Turn -> Pos
 turnToPos (Turn _ (Place pos))  = pos
-turnToPos (Turn _ (Move _ pos)) = pos
+turnToPos (Turn _ (Move pos _)) = pos
+
+-- | Extract resulting `Pos` of a @Turn@.
+turnToPos' :: Turn -> Pos
+turnToPos' (Turn _ (Place pos))  = pos
+turnToPos' (Turn _ (Move _ pos)) = pos
 
 
 -- * Other

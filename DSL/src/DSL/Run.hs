@@ -4,7 +4,7 @@ module DSL.Run (
     runCondition
 ) where
 import DSL.Types
-import DSL.Utility (turnToPos)
+import DSL.Utility (isWithinBoard)
 import Control.Monad.Loops
 import Data.Maybe
 
@@ -52,13 +52,8 @@ runUntil _ _ _ g = error "Cannot have an IterateUntil without TurnRule"
 
 -- | Run function for the data type 'Condition'
 runCondition :: Condition Turn -> Turn -> Game -> Bool
-runCondition (Condition c) t g = _isWithinBoard t g && c t g
+runCondition (Condition c) t g = isWithinBoard t g && c t g
 runCondition (c1 `AND` c2) t g = runCondition c1 t g && runCondition c2 t g
 runCondition (c1 `OR` c2)  t g = runCondition c1 t g || runCondition c2 t g
 runCondition (NOT c)       t g = not $ runCondition c t g
 
--- | Helper function to check if a 'Turn' results in a position within the board's boundaries.
-_isWithinBoard :: Turn -> Game -> Bool
-_isWithinBoard t g = x >= 0 && x < (length . head . board) g && y >= 0 && y < (length . board) g
-    where
-        (Pos x y) = turnToPos t

@@ -120,6 +120,8 @@ instance Show Piece where
 
 instance Num Pos where
     (Pos x y) + (Pos x' y') = Pos (x+x') (y+y')
+    (Pos x y) - (Pos x' y') = Pos (x-x') (y-y')
+    (Pos x y) * (Pos x' y') = Pos (x*x') (y*y')
 
 
 -- * Testing

@@ -20,6 +20,7 @@ module DSL.Lib (
     -- * Rules
     -- $rule
     placePiece,
+    movePiece,
     gameDraw,
     currentPlayerWins,
     playerWithMostPiecesWins,
@@ -32,12 +33,13 @@ module DSL.Lib (
     -- $condition
     trueCond,
     falseCond,
-    isWithinBoard,
     boardIsFull,
     changedState,
     allyTile,
     enemyTile,
     emptyTile,
+    emptyDestination,
+    destinationIsRelativeTo,
     noPlayerHasMoves,
     inARow,
     tileBelowIsNotEmpty,
@@ -106,6 +108,10 @@ initRectBoard w h (((x,y), p):as) = board $ _placePiece (placeTurn p (x-1) (y-1)
 -- | Places a piece in a certain position on the board
 placePiece :: Rule
 placePiece = Rule $ Update _placePiece
+
+-- | Move a piece to a absolute position on the board
+movePiece :: Rule
+movePiece = Rule $ Update _movePiece
 
 -- | A `Rule` for a draw
 gameDraw :: Rule
@@ -182,10 +188,6 @@ trueCond = Condition (\t g -> True)
 falseCond :: Condition Turn
 falseCond = Condition (\t g -> False)
 
--- | Checks if a `Tile` is within the boundaries of the board
-isWithinBoard :: Condition Turn
-isWithinBoard = Condition _isWithinBoard
-
 -- | Checks if the board is full
 boardIsFull :: Condition a
 boardIsFull = Condition _boardIsFull
@@ -202,9 +204,17 @@ allyTile = Condition $ _comparePieceOnTile (==)
 enemyTile :: Condition Turn
 enemyTile = Condition $ _comparePieceOnTile (/=)
 
--- | A `Condition` for checking if a tile is empty
+-- | A `Condition` for checking if the current tile is empty
 emptyTile :: Condition Turn
 emptyTile = Condition _emptyTile
+
+-- | A `Condition` for checking if the destination tile is empty
+emptyDestination :: Condition Turn 
+emptyDestination = Condition _emptyDestination
+
+-- | Check if the destination tile is move relative a certain amount
+destinationIsRelativeTo :: (Int, Int) -> Condition Turn
+destinationIsRelativeTo dir = Condition $ _destinationIsRelativeTo dir
 
 -- | Returns `True` if no player has any valid moves, `False` otherwise
 noPlayerHasMoves :: Condition Turn

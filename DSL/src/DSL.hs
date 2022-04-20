@@ -38,12 +38,12 @@ playGame g = do
         piece <- getValidPiece currPlayer (pieces g)
         input <- getValidInput piece g
 
-        let newGame = playTurn g piece input
+        let newGame = playTurn (Turn piece input) g
 
         -- Check if nothing happened on the board to give feedback to the user
         -- Todo: Determine if this is the way to do it, now it assumes that all moves include changes to the board
         if board g == board newGame && players g == players newGame then 
-            putStrLn "Inputted move does not follow the rules" >>
+            putStrLn "Input move does not follow the rules" >>
             playGame newGame
 
         else if gameEnded newGame then
@@ -55,12 +55,11 @@ playGame g = do
             playGame newGame
 
 -- | Plays one turn and apply each rule.
-playTurn :: Game -> Piece -> Pos -> Game
-playTurn g p pos | not $ isValidInput turn g = g
-                 | otherwise = postPlayTurn turn newGame
+playTurn :: Turn -> Game -> Game
+playTurn t g | not $ isValidInput t g = g
+             | otherwise = postPlayTurn t newGame
     where
-        newGame = applyRules turn g rules
-        turn = placeTurn' p pos
+        newGame = applyRules t g rules
 
 -- | After a turn is done, apply the end conditions and cycle the players.
 postPlayTurn :: Turn -> Game -> Game
@@ -75,25 +74,45 @@ checkInterupt s | s == "q" = error "Game interrupted"
                 | otherwise = return ()
 
 -- | Gets an input from the user and determines whether or not it is valid
-getValidInput :: Piece -> Game -> IO Pos
+getValidInput :: Piece -> Game -> IO Action
 getValidInput p g = do
     let r = rules g
         b = board g
-    putStrLn "Enter desired location (format: x,y)"
+    putStrLn "Enter your action (Either 'place x,y' or 'move x1,y1 x2,y2')"
     input <- getLine
 
     checkInterupt input
 
-    let xs = catMaybes (map readMaybe $ splitOn "," input :: [Maybe Int])
-    if length xs /= 2 then
-        putStrLn "You must write exactly two integer coordinates separated by one comma" >>
-        getValidInput p g
-    else do
-        let [x, y] = xs
-        if x `notElem` [1..length $ head b] || y `notElem` [1..length b] then
-            putStrLn (show x ++ ',' : show y ++ " is not within the bounds of the board") >> 
-            getValidInput p g
-        else return $ Pos (x - 1) (y - 1)
+    let (func:coords) = splitOn " " input
+
+
+    case func of
+        "place"  -> if length coords /= 1 then do
+                        putStrLn "Input does not follow specification"
+                        getValidInput p g
+                    else
+                        return $ handlePlace coords
+        "move"  -> if length coords /= 2 then do
+                        putStrLn "Input does not follow specification"
+                        getValidInput p g
+                    else
+                        return $ handleMove coords
+        _ -> do putStrLn "Input does not follow specification"
+                getValidInput p g
+
+
+handlePlace :: [String] -> Action
+handlePlace input = Place $ Pos (x-1) (y-1)
+    where [x,y] = getCoordsFromInput $ head input
+
+handleMove :: [String] -> Action
+handleMove input = Move (Pos (x1-1) (y1-1)) (Pos (x2-1) (y2-1))
+    where [x1,y1] = getCoordsFromInput $ head input
+          [x2,y2] = getCoordsFromInput $ head (tail input)
+
+getCoordsFromInput :: String -> [Int]
+getCoordsFromInput s = catMaybes (map readMaybe $ splitOn "," s :: [Maybe Int])
+
 
 -- | Apply a series of rules on the game and return the final result
 applyRules :: Turn -> Game -> (Game -> [Rule]) -> Game

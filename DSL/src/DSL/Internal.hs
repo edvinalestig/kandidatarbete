@@ -10,17 +10,19 @@ module DSL.Internal (
     -- * Rules
     -- $rule
     _placePiece,
+    _movePiece,
     _makeDraw,
     _currentPlayerWins,
     _playerWithMostPiecesWins,
 
     -- * Conditions
     -- $condition
-    _isWithinBoard,
     _boardIsFull,
     _changedState,
     _comparePieceOnTile,
     _emptyTile,
+    _emptyDestination,
+    _destinationIsRelativeTo,
     _noPlayerHasMoves,
     _inARow,
     _tileBelowIsNotEmpty,
@@ -59,9 +61,20 @@ import DSL.Run (runRule)
 
 -- | Places a piece in a certain position on the board
 _placePiece :: Turn -> Game -> Game
-_placePiece t@(Turn p _) g = g {board = replaceAtIndex y newRow (board g)}
-    where (Pos x y) = turnToPos t
-          tile = PieceTile p (Pos x y)
+_placePiece t@(Turn p _) = replacePiece tile
+    where tile = PieceTile p $ turnToPos t
+
+-- | Moves a pieces to a absolute position on the board
+_movePiece :: Turn -> Game -> Game
+_movePiece t@(Turn p (Move pos1 pos2)) g = replacePiece tile1 $ replacePiece tile2 g
+    where tile1 = Empty pos1
+          tile2 = PieceTile p pos2
+_movePiece (Turn _ (Place _)) g = g
+
+-- | Places a tile in a certain position on the board
+replacePiece :: Tile -> Game -> Game
+replacePiece tile g = g {board = replaceAtIndex y newRow (board g)}
+    where (Pos x y) = getPos tile
           newRow = replaceAtIndex x tile (board g !! y)
 
 -- | Set the game state to a draw
@@ -81,12 +94,6 @@ _playerWithMostPiecesWins _ = updateWinner playerWithMostPieces
 {- $condition -}
 
 
--- Check wheter or not a 'Turn' is within the boundaries of our board.
-_isWithinBoard :: Turn -> Game -> Bool
-_isWithinBoard t g = x >= 0 && x < (length . head . board) g && y >= 0 && y < (length . board) g
-    where
-        (Pos x y) = turnToPos t
-
 -- | Return whether or not the board is full, such that no tiles are empty.
 _boardIsFull :: a -> Game -> Bool
 _boardIsFull _ g = " " `notElem` concatMap (map show) (board g)
@@ -104,13 +111,23 @@ _comparePieceOnTile f t@(Turn p _) g =
         (PieceTile p' _) -> p `f` p'
         _                -> False
 
--- | Return whether or not the tile the turn is refering to is empty.
+-- | Return whether or not the current tile the turn is refering to is empty.
 _emptyTile :: Turn -> Game -> Bool
 _emptyTile t = empty' . turnGameToTile t
+
+-- | Return whether or not the destination tile the turn is refering to is empty.
+_emptyDestination :: Turn -> Game -> Bool
+_emptyDestination t@(Turn p _) = empty' . turnGameToTile' t
 
 -- | Returns `True` if no player has any valid moves, `False` otherwise
 _noPlayerHasMoves :: Turn -> Game -> Bool
 _noPlayerHasMoves _ g = not $ any (playerHasMoves g) (players g)
+
+-- | Checks if the destination is x steps up/down and y steps left/right compared to original position
+_destinationIsRelativeTo :: (Int, Int) -> Turn -> Game -> Bool
+_destinationIsRelativeTo (x,y) t g = Pos x y == turnToPos' t - turnToPos t
+        
+
 
 -- | Return whether or not 'k' in a row pieces, in all directions,
 -- can be found anywhere on the board.

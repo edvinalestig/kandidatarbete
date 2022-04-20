@@ -26,6 +26,35 @@ tictactoe = emptyGame {
     ]
 }
 
+-- Testing the move functionality
+movetest :: Game
+movetest = emptyGame {
+    board = rectBoard 8 8,
+    pieces = [
+        Piece "X" (Player "A"),
+        Piece "O" (Player "B")
+    ],
+    players = [
+        Player "A",
+        Player "B"
+    ],
+    rules = [
+        If emptyTile placePiece,
+        If (allyTile `AND` emptyDestination)  (If (destinationIsRelativeTo (2,1)) movePiece),
+        If (allyTile `AND` emptyDestination)  (If (destinationIsRelativeTo (1,-2)) movePiece),
+        If (allyTile `AND` emptyDestination)  (If (destinationIsRelativeTo (-2,1)) movePiece),
+        If (allyTile `AND` emptyDestination)  (If (destinationIsRelativeTo (-1,-2)) movePiece),
+        If (allyTile `AND` emptyDestination)  (If (destinationIsRelativeTo (-1,2)) movePiece),
+        If (allyTile `AND` emptyDestination)  (If (destinationIsRelativeTo (1,-2)) movePiece),
+        If (allyTile `AND` emptyDestination)  (If (destinationIsRelativeTo (-1,2)) movePiece),
+        If (allyTile `AND` emptyDestination)  (If (destinationIsRelativeTo (-1,-2)) movePiece)
+    ],
+    endConditions = [
+        If (inARow 3) currentPlayerWins,
+        If boardIsFull gameDraw
+    ]
+}
+
 -- | m,n,k-game
 tictactoeVariant :: Int -> Int -> Int -> Game
 tictactoeVariant x y z = emptyGame {
