@@ -254,19 +254,19 @@ turnDown = Update $ _turnDirection (0, 1)
 
 -- | An `Update` for moving one step up and to the left, mainly for use with `IterateUntil`
 turnUpLeft :: Update Turn
-turnUpLeft = Update $ _turnDirection (-1, -1)
+turnUpLeft = turnUp `COMBINE` turnLeft
 
 -- | An `Update` for moving one step up and to the right, mainly for use with `IterateUntil`
 turnUpRight :: Update Turn
-turnUpRight = Update $ _turnDirection (1, -1)
+turnUpRight = turnUp `COMBINE` turnRight
 
 -- | An `Update` for moving one step down and to the left, mainly for use with `IterateUntil`
 turnDownLeft :: Update Turn
-turnDownLeft = Update $ _turnDirection (-1, 1)
+turnDownLeft = turnDown `COMBINE` turnLeft
 
 -- | An `Update` for moving one step down and to the right, mainly for use with `IterateUntil`
 turnDownRight :: Update Turn
-turnDownRight = Update $ _turnDirection (1, 1)
+turnDownRight = turnDown `COMBINE` turnRight
 
 
 -- * Display functions
