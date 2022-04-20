@@ -13,12 +13,10 @@ module DSL.Types (
     Turn (..),
     Action (..),
     Pos (..),
-    EndCondition (..),
     Player (..),
     Piece (..),
     Tile (..),
-    Board,
-    Die (..)
+    Board
 ) where
 
 import Test.QuickCheck
@@ -89,10 +87,6 @@ data Condition a = Condition (a -> Game -> Bool)
 data Pos = Pos Int Int
     deriving (Eq, Show)
 
--- | A record containing conditions to be met for the game to end.
---   It can have multiple functions for draws and wins. 
-type EndCondition = (Game -> Maybe Player, Rule) -- Game -> Bool
-
 -- | A player object with a name
 newtype Player = Player String
     deriving (Eq)
@@ -108,9 +102,6 @@ data Tile = PieceTile Piece Pos | Empty Pos
 
 -- | The board contains a list of rows of tiles. 
 type Board = [[Tile]]
-
--- | A die with a given number of sides.
-newtype Die = Die Int
 
 instance Show Player where
     show (Player p) = p
