@@ -121,7 +121,7 @@ othello = emptyGame {
     ],
     rules = [
         If (emptyTile `AND` changedState othelloRule)
-            placePiece >>> othelloRule
+            (placePiece >>> othelloRule)
     ],
     endConditions = [
         If noPlayerHasMoves playerWithMostPiecesWins
@@ -150,7 +150,7 @@ othello2 = emptyGame {
     ],
     rules = [
         If (emptyTile `AND` changedState othelloRule)
-            placePiece >>> othelloRule
+            (placePiece >>> othelloRule)
     ],
     endConditions = [
         If noPlayerHasMoves playerWithMostPiecesWins
