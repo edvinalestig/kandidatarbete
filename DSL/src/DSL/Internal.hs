@@ -20,6 +20,7 @@ module DSL.Internal (
     _boardIsFull,
     _changedState,
     _comparePieceOnTile,
+    _comparePlayerOnTile,
     _emptyTile,
     _emptyDestination,
     _destinationIsRelativeTo,
@@ -61,8 +62,9 @@ import DSL.Run (runRule)
 
 -- | Places a piece in a certain position on the board
 _placePiece :: Turn -> Game -> Game
-_placePiece t@(Turn p _) = replacePiece tile
+_placePiece t@(Turn p (Place _)) g = replacePiece tile g
     where tile = PieceTile p $ turnToPos t
+_placePiece _ g = g
 
 -- | Moves a pieces to a absolute position on the board
 _movePiece :: Turn -> Game -> Game
@@ -111,6 +113,14 @@ _comparePieceOnTile f t@(Turn p _) g =
         (PieceTile p' _) -> p `f` p'
         _                -> False
 
+-- | Make a comparision of the current 'Player' with the piece
+-- specified on the board
+_comparePlayerOnTile :: (Player -> Player -> Bool) -> Turn -> Game -> Bool
+_comparePlayerOnTile f t@(Turn p _) g =
+    case turnGameToTile t g of
+        (PieceTile _ _) -> getPlayer p `f` head (players g)
+        _               -> False
+
 -- | Return whether or not the current tile the turn is refering to is empty.
 _emptyTile :: Turn -> Game -> Bool
 _emptyTile t = empty' . turnGameToTile t
@@ -126,7 +136,7 @@ _noPlayerHasMoves _ g = not $ any (playerHasMoves g) (players g)
 -- | Checks if the destination is x steps up/down and y steps left/right compared to original position
 _destinationIsRelativeTo :: (Int, Int) -> Turn -> Game -> Bool
 _destinationIsRelativeTo (x,y) t g = Pos x y == turnToPos' t - turnToPos t
-        
+
 
 
 -- | Return whether or not 'k' in a row pieces, in all directions,
@@ -199,7 +209,7 @@ playerHasMoves g p = playerHasMoves' (filterPieces p (pieces g)) g
 
 -- | Determines if a given piece has any legal moves with regards to the rules and a board state
 pieceHasMoves :: Piece -> Game -> [Tile] -> Bool
-pieceHasMoves _ _ [] = False 
+pieceHasMoves _ _ [] = False
 pieceHasMoves p g (t:ts) | null (rules g) = False
                          | otherwise = validInput || pieceHasMoves p g ts
     where

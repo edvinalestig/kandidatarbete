@@ -198,11 +198,11 @@ changedState r = Condition $ _changedState r
 
 -- | A `Condition` for checking if the piece (on given tile) belongs to the current player
 allyTile :: Condition Turn
-allyTile = Condition $ _comparePieceOnTile (==)
+allyTile = Condition $ _comparePlayerOnTile (==)
 
 -- | A `Condition` for checking if the piece (on given tile) doesn't belong to the current player
 enemyTile :: Condition Turn
-enemyTile = Condition $ _comparePieceOnTile (/=)
+enemyTile = Condition $ _comparePlayerOnTile (/=)
 
 -- | A `Condition` for checking if the current tile is empty
 emptyTile :: Condition Turn

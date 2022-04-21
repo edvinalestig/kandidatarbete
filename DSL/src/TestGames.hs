@@ -29,10 +29,15 @@ tictactoe = emptyGame {
 -- Testing the move functionality
 movetest :: Game
 movetest = emptyGame {
-    board = rectBoard 8 8,
+    board = initRectBoard 8 8 [
+        ((2,2), Piece "O" (Player "B"))
+    ],
     pieces = [
         Piece "X" (Player "A"),
-        Piece "O" (Player "B")
+        Piece "O" (Player "B"),
+        Piece "Y" (Player "A"),
+        Piece "Z" (Player "B")
+
     ],
     players = [
         Player "A",
@@ -40,14 +45,14 @@ movetest = emptyGame {
     ],
     rules = [
         If emptyTile placePiece,
-        If (allyTile `AND` emptyDestination)  (If (destinationIsRelativeTo (2,1)) movePiece),
+        If (allyTile `AND` emptyDestination)  (If (destinationIsRelativeTo (1,2)) movePiece),
         If (allyTile `AND` emptyDestination)  (If (destinationIsRelativeTo (1,-2)) movePiece),
-        If (allyTile `AND` emptyDestination)  (If (destinationIsRelativeTo (-2,1)) movePiece),
+        If (allyTile `AND` emptyDestination)  (If (destinationIsRelativeTo (-1,2)) movePiece),
         If (allyTile `AND` emptyDestination)  (If (destinationIsRelativeTo (-1,-2)) movePiece),
-        If (allyTile `AND` emptyDestination)  (If (destinationIsRelativeTo (-1,2)) movePiece),
-        If (allyTile `AND` emptyDestination)  (If (destinationIsRelativeTo (1,-2)) movePiece),
-        If (allyTile `AND` emptyDestination)  (If (destinationIsRelativeTo (-1,2)) movePiece),
-        If (allyTile `AND` emptyDestination)  (If (destinationIsRelativeTo (-1,-2)) movePiece)
+        If (allyTile `AND` emptyDestination)  (If (destinationIsRelativeTo (2,1)) movePiece),
+        If (allyTile `AND` emptyDestination)  (If (destinationIsRelativeTo (2,-1)) movePiece),
+        If (allyTile `AND` emptyDestination)  (If (destinationIsRelativeTo (-2,1)) movePiece),
+        If (allyTile `AND` emptyDestination)  (If (destinationIsRelativeTo (-2,-1)) movePiece)
     ],
     endConditions = [
         If (inARow 3) currentPlayerWins,

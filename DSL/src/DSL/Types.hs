@@ -50,7 +50,7 @@ data Turn = Turn
     }
 
 -- | Represent a move that a piece can make
-data Action = Place Pos | Move Pos Pos
+data Action = Place Pos | Move Pos Pos deriving (Show)
 
 -- | Update
 data Update t = Update (Turn -> t -> t)         -- ^ Represent an update to a type `t`

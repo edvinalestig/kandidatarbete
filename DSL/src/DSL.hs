@@ -35,8 +35,10 @@ playGame g = do
         playGame $ g {players = cyclePlayers $ players g}
     else do
         putStrLn $ "Player " ++ show currPlayer ++ "'s turn"
-        piece <- getValidPiece currPlayer (pieces g)
-        input <- getValidInput piece g
+        input <- getValidInput g
+        piece <- case input of
+                        Move pos _ -> return $ getPiece (board g) pos
+                        Place _ -> getValidPiece currPlayer (pieces g)
 
         let newGame = playTurn (Turn piece input) g
 
@@ -74,8 +76,8 @@ checkInterupt s | s == "q" = error "Game interrupted"
                 | otherwise = return ()
 
 -- | Gets an input from the user and determines whether or not it is valid
-getValidInput :: Piece -> Game -> IO Action
-getValidInput p g = do
+getValidInput :: Game -> IO Action
+getValidInput g = do
     let r = rules g
         b = board g
     putStrLn "Enter your action (Either 'place x,y' or 'move x1,y1 x2,y2')"
@@ -85,20 +87,24 @@ getValidInput p g = do
 
     let (func:coords) = splitOn " " input
 
+    let action = case func of
+            "place"  -> if length coords /= 1 then do
+                            putStrLn "Input does not follow specification"
+                            getValidInput g
+                        else
+                            return $ handlePlace coords
+            "move"  -> if length coords /= 2 then do
+                            putStrLn "Input does not follow specification"
+                            getValidInput g
+                        else
+                            return $ handleMove coords
+            _ -> do putStrLn "Input does not follow specification"
+                    getValidInput g
+    a <- action
+    case a of
+        Move pos _ -> if empty' $ getTile (board g) pos then getValidInput g else action
+        Place pos -> action 
 
-    case func of
-        "place"  -> if length coords /= 1 then do
-                        putStrLn "Input does not follow specification"
-                        getValidInput p g
-                    else
-                        return $ handlePlace coords
-        "move"  -> if length coords /= 2 then do
-                        putStrLn "Input does not follow specification"
-                        getValidInput p g
-                    else
-                        return $ handleMove coords
-        _ -> do putStrLn "Input does not follow specification"
-                getValidInput p g
 
 
 handlePlace :: [String] -> Action
