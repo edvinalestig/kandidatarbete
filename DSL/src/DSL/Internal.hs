@@ -116,9 +116,9 @@ _comparePieceOnTile f t@(Turn p _) g =
 -- | Make a comparision of the current 'Player' with the piece
 -- specified on the board
 _comparePlayerOnTile :: (Player -> Player -> Bool) -> Turn -> Game -> Bool
-_comparePlayerOnTile f t@(Turn p _) g =
+_comparePlayerOnTile f t g =
     case turnGameToTile t g of
-        (PieceTile _ _) -> getPlayer p `f` head (players g)
+        (PieceTile p' _) -> getPlayer p' `f` head (players g)
         _               -> False
 
 -- | Return whether or not the current tile the turn is refering to is empty.

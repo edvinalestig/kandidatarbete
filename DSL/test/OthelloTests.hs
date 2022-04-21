@@ -21,7 +21,7 @@ prop_othello_correctChangesStraightLines = do
             [m, m, m, o, m, m, m]
         ]
     }
-    let g2 = playTurn g1 o (Pos 3 3)
+    let g2 = playTurn (Turn o (Place (Pos 3 3))) g1
     let expected = parseBoard [
             [m, m, m, o, m, m, m],
             [m, x, m, o, m, x, m],
@@ -44,7 +44,7 @@ prop_othello_correctChangesDiagonalLines = do
             [o, m, m, m, m, m, o]
         ]
     }
-    let g2 = playTurn g1 o (Pos 3 3)
+    let g2 = playTurn (Turn o (Place (Pos 3 3))) g1
     let expected = parseBoard [
             [o, m, m, m, m, m, o],
             [m, o, m, x, m, o, m],

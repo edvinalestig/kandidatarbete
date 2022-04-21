@@ -21,10 +21,10 @@ prop_tictactoe_gameNotEndedAfter4Moves :: Pos -> Pos -> Pos -> Pos -> Property
 prop_tictactoe_gameNotEndedAfter4Moves t1 t2 t3 t4 = 
     length (nub [t1,t2,t3,t4]) == 4 ==> do
         let g1 = tictactoe 
-            g2  = playTurn g1 p1 t1
-            g3  = playTurn g2 p2 t2
-            g4  = playTurn g3 p1 t3
-            g5  = playTurn g4 p2 t4
+            g2  = playTurn (placeTurn' p1 t1) g1
+            g3  = playTurn (placeTurn' p2 t2) g2
+            g4  = playTurn (placeTurn' p1 t3) g3
+            g5  = playTurn (placeTurn' p2 t4) g4
         gameEnded g5 === False .&&. isNothing (winner g5)
         where
             p1 = head $ pieces tictactoe  
@@ -33,11 +33,11 @@ prop_tictactoe_gameNotEndedAfter4Moves t1 t2 t3 t4 =
 prop_tictactoe_player1canWin :: Property
 prop_tictactoe_player1canWin = do
     let g1  = tictactoe 
-        g2  = playTurn g1 p1 (Pos 0 0)
-        g3  = playTurn g2 p2 (Pos 0 1)
-        g4  = playTurn g3 p1 (Pos 1 1)
-        g5  = playTurn g4 p2 (Pos 1 2)
-        g6  = playTurn g5 p1 (Pos 2 2)
+        g2  = playTurn (placeTurn' p1 (Pos 0 0)) g1
+        g3  = playTurn (placeTurn' p2 (Pos 0 1)) g2
+        g4  = playTurn (placeTurn' p1 (Pos 1 1)) g3
+        g5  = playTurn (placeTurn' p2 (Pos 1 2)) g4
+        g6  = playTurn (placeTurn' p1 (Pos 2 2)) g5
     fromJust (winner g6) === player1 .&&. gameEnded g6
     where
         p1 = head $ pieces tictactoe  
@@ -47,12 +47,12 @@ prop_tictactoe_player1canWin = do
 prop_tictactoe_player2canWin :: Property
 prop_tictactoe_player2canWin = do
     let g1  = tictactoe 
-        g2  = playTurn g1 p1 (Pos 0 0)
-        g3  = playTurn g2 p2 (Pos 1 0)
-        g4  = playTurn g3 p1 (Pos 2 2)
-        g5  = playTurn g4 p2 (Pos 1 1)
-        g6  = playTurn g5 p1 (Pos 2 0)
-        g7  = playTurn g6 p2 (Pos 1 2)
+        g2  = playTurn (placeTurn' p1 (Pos 0 0)) g1
+        g3  = playTurn (placeTurn' p2 (Pos 1 0)) g2
+        g4  = playTurn (placeTurn' p1 (Pos 2 2)) g3
+        g5  = playTurn (placeTurn' p2 (Pos 1 1)) g4
+        g6  = playTurn (placeTurn' p1 (Pos 2 0)) g5
+        g7  = playTurn (placeTurn' p2 (Pos 1 2)) g6
     fromJust (winner g7) === player2 .&&. gameEnded g7
     where
         p1 = head $ pieces tictactoe  
@@ -62,15 +62,15 @@ prop_tictactoe_player2canWin = do
 prop_tictactoe_noWinnerWhenDraw :: Property
 prop_tictactoe_noWinnerWhenDraw = do
     let g1  = tictactoe 
-        g2  = playTurn g1 p1 (Pos 0 0)
-        g3  = playTurn g2 p2 (Pos 0 1)
-        g4  = playTurn g3 p1 (Pos 1 1)
-        g5  = playTurn g4 p2 (Pos 2 2)
-        g6  = playTurn g5 p1 (Pos 2 0)
-        g7  = playTurn g6 p2 (Pos 0 2)
-        g8  = playTurn g7 p1 (Pos 1 2)
-        g9  = playTurn g8 p2 (Pos 1 0)
-        g10 = playTurn g9 p1 (Pos 2 1)
+        g2  = playTurn (placeTurn' p1 (Pos 0 0)) g1
+        g3  = playTurn (placeTurn' p2 (Pos 0 1)) g2
+        g4  = playTurn (placeTurn' p1 (Pos 1 1)) g3
+        g5  = playTurn (placeTurn' p2 (Pos 2 2)) g4
+        g6  = playTurn (placeTurn' p1 (Pos 2 0)) g5
+        g7  = playTurn (placeTurn' p2 (Pos 0 2)) g6
+        g8  = playTurn (placeTurn' p1 (Pos 1 2)) g7
+        g9  = playTurn (placeTurn' p2 (Pos 1 0)) g8
+        g10 = playTurn (placeTurn' p1 (Pos 2 1)) g9
     isNothing (winner g10) === True
     where
         p1 = head $ pieces tictactoe  
@@ -79,15 +79,15 @@ prop_tictactoe_noWinnerWhenDraw = do
 prop_tictactoe_gameEndsWhenDraw :: Property 
 prop_tictactoe_gameEndsWhenDraw = do
     let g1  = tictactoe 
-        g2  = playTurn g1 p1 (Pos 0 0)
-        g3  = playTurn g2 p2 (Pos 0 1)
-        g4  = playTurn g3 p1 (Pos 1 1)
-        g5  = playTurn g4 p2 (Pos 2 2)
-        g6  = playTurn g5 p1 (Pos 2 0)
-        g7  = playTurn g6 p2 (Pos 0 2)
-        g8  = playTurn g7 p1 (Pos 1 2)
-        g9  = playTurn g8 p2 (Pos 1 0)
-        g10 = playTurn g9 p1 (Pos 2 1)
+        g2  = playTurn (placeTurn' p1 (Pos 0 0)) g1
+        g3  = playTurn (placeTurn' p2 (Pos 0 1)) g2
+        g4  = playTurn (placeTurn' p1 (Pos 1 1)) g3
+        g5  = playTurn (placeTurn' p2 (Pos 2 2)) g4
+        g6  = playTurn (placeTurn' p1 (Pos 2 0)) g5
+        g7  = playTurn (placeTurn' p2 (Pos 0 2)) g6
+        g8  = playTurn (placeTurn' p1 (Pos 1 2)) g7
+        g9  = playTurn (placeTurn' p2 (Pos 1 0)) g8
+        g10 = playTurn (placeTurn' p1 (Pos 2 1)) g9
     gameEnded g10 === True
     where
         p1 = head $ pieces tictactoe  
@@ -106,7 +106,7 @@ prop_tictactoe_correctPlacement= ioProperty $ do
     y <- generate $ elements [0..2]
     let pos = Pos x y
     piece <- generate . elements $ pieces game
-    let g = playTurn game piece pos
+    let g = playTurn (placeTurn' piece pos) game
 
     if empty' (getTile (board game) pos) then
         return $ getTile (board g) pos === PieceTile piece pos 

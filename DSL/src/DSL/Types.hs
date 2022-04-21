@@ -21,10 +21,6 @@ module DSL.Types (
 
 import Test.QuickCheck
 
--- This is to support a sequence of these operators after each other
--- without needing paranthesis. 
-infixr 9 `SEQ`
-infixr 9 `THEN`
 
 
 -- | The main game object where all game info is contained. 
