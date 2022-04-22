@@ -41,6 +41,16 @@ main = hspec $ do
             prop_othello_correctChangesStraightLines
         prop "verify that it flips pieces in diagonal lines with multiple for each line" 
             prop_othello_correctChangesDiagonalLines
+        prop "verify that the game is ended when the board is full" 
+            prop_othello_gameEndedWhenFullBoard 
+        prop "verify that the game is ended when no player has a legal move" 
+            prop_othello_gameEndedWhenNoPlayerHasLegalMove  
+        prop "verify that the one with the most pieces wins" 
+            prop_othello_playerWithTheMostPiecesWins 
+        prop "verify that the game results in a draw when players has an equal number of pieces" 
+            prop_othello_drawOnEqualNumberOfPieces  
+        prop "verify that an invalid move does not change the game state" 
+            prop_othello_invalidMoveChangesNothing
 
 
 -- | Verify that the board is a rectangle and of correct width and height
