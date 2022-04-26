@@ -30,9 +30,13 @@ playGame g = do
     dispFunction g g
 
     let currPlayer = head $ players g
-    if not (playerHasMoves g currPlayer) then do
-        putStrLn $ "Player " ++ show currPlayer ++ "'s turn is skipped - no valid moves"
-        playGame $ g {players = cyclePlayers $ players g}
+    let g' = applyRules (Turn (Piece "" (Player "")) (Place (Pos 0 0))) g preTurnRules
+    if board g' /= board g || players g' /= players g then
+        playGame g'
+    --if not (playerHasMoves g currPlayer) then do
+        --putStrLn $ "Player " ++ show currPlayer ++ "'s turn is skipped - no valid moves"
+        --playGame $ g {players = cyclePlayers $ players g}
+    --else do
     else do
         putStrLn $ "Player " ++ show currPlayer ++ "'s turn"
         input <- getValidInput g
@@ -143,9 +147,6 @@ getValidPiece player ps =
         filteredPieces = filterPieces player ps
 
 
--- | Current player is put last in the player list
-cyclePlayers :: [Player] -> [Player]
-cyclePlayers ps = tail ps ++ [head ps]
 
 
 

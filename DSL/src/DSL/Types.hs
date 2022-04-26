@@ -29,6 +29,7 @@ data Game = Game
         board         :: Board,
         pieces        :: [Piece],
         players       :: [Player],
+        preTurnRules  :: [Rule],
         rules         :: [Rule],
         endConditions :: [Rule],
         winner        :: Maybe Player,
@@ -118,6 +119,9 @@ instance Num Pos where
     (Pos x y) + (Pos x' y') = Pos (x+x') (y+y')
     (Pos x y) - (Pos x' y') = Pos (x-x') (y-y')
     (Pos x y) * (Pos x' y') = Pos (x*x') (y*y')
+    signum p = p
+    abs _ = Pos 1 1
+    fromInteger i = Pos (fromIntegral i) (fromIntegral i)
 
 
 -- * Testing

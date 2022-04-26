@@ -7,6 +7,10 @@ module DSL.Utility where
 import DSL.Types
 
 
+-- | Current player is put last in the player list
+cyclePlayers :: [Player] -> [Player]
+-- cyclePlayers ps = tail ps ++ [head ps]
+cyclePlayers = tail <> take 1 -- MONOID (Semigroup)! :D
 
 -- * Turn
 
@@ -96,13 +100,22 @@ getPiece b pos = case getTile b pos of
                     PieceTile p _ -> p
 
 
+getPiece' :: Board -> Pos -> Maybe Piece
+getPiece' b pos = case getTile b pos of
+                    Empty _ -> Nothing
+                    PieceTile p _ -> Just p
+
 -- * Player
 
 -- | Extract the @Player@ of a @Piece@
 getPlayer :: Piece -> Player
 getPlayer (Piece _ p) = p
 
+row :: Int -> Board -> [Tile]
+row i b = b !! i
 
+col :: Int -> Board -> [Tile]
+col i b = undefined -- Todo: remove or implement
 -- * Other
 
 -- | Replaces an elemenent with the input at a given index

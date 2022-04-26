@@ -17,19 +17,27 @@ module DSL.Internal (
 
     -- * Conditions
     -- $condition
+    _pieceIsAtPos,
+    _pieceBelongsToRow,
     _boardIsFull,
     _changedState,
     _comparePieceOnTile,
     _comparePlayerOnTile,
+    _comparePlayerOnDestination,
+    _pieceEqualTo,
+    _pieceOnBoard,
     _emptyTile,
     _emptyDestination,
     _destinationIsRelativeTo,
+    _isDiagonal,
     _noPlayerHasMoves,
+    _playerCanPlace,
     _inARow,
     _tileBelowIsNotEmpty,
 
     -- * Updates
     -- $update
+    _skipTurn,
     _turnDirection,
 
     -- * Helper functions
@@ -95,6 +103,19 @@ _playerWithMostPiecesWins _ = updateWinner playerWithMostPieces
 -- *  Conditions
 {- $condition -}
 
+-- | Checks if the Turn Piece is at a certain position, only relevant for moving pieces
+_pieceIsAtPos :: Pos -> Turn -> Game -> Bool
+_pieceIsAtPos pos t@(Turn p (Move pos1 pos2)) g = pos1 == pos
+_pieceIsAtPos _ _ _ = False
+
+
+_pieceBelongsToRow :: Int -> Turn -> Game -> Bool
+_pieceBelongsToRow i (Turn p (Move pos1 pos2)) g = tile `elem` row
+    where
+        row  = board g !! (i - 1)
+        tile = PieceTile p pos1
+_pieceBelongsToRow _ _ _ = False
+
 
 -- | Return whether or not the board is full, such that no tiles are empty.
 _boardIsFull :: a -> Game -> Bool
@@ -121,11 +142,28 @@ _comparePlayerOnTile f t g =
         (PieceTile p' _) -> getPlayer p' `f` head (players g)
         _               -> False
 
--- | Return whether or not the current tile the turn is refering to is empty.
+_comparePlayerOnDestination :: (Player -> Player -> Bool) -> Turn -> Game -> Bool
+_comparePlayerOnDestination f t g =
+    case turnGameToTile' t g of
+        (PieceTile p' _) -> getPlayer p' `f` head (players g)
+        _               -> False
+
+_pieceEqualTo :: String -> Turn -> Game -> Bool
+_pieceEqualTo s (Turn p _) g = s == s'
+    where (Piece s' _) = p
+
+_pieceOnBoard :: Piece -> Turn -> Game -> Bool
+_pieceOnBoard p _ g = p `elem` pieces
+    where
+        b = board g
+        filteredBoard = filter (not . empty') $ concat b
+        pieces = [p | (PieceTile p pos) <- filteredBoard]
+
+-- | Return whether or not the current tile the turn is referring to is empty.
 _emptyTile :: Turn -> Game -> Bool
 _emptyTile t = empty' . turnGameToTile t
 
--- | Return whether or not the destination tile the turn is refering to is empty.
+-- | Return whether or not the destination tile the turn is referring to is empty.
 _emptyDestination :: Turn -> Game -> Bool
 _emptyDestination t@(Turn p _) = empty' . turnGameToTile' t
 
@@ -133,11 +171,23 @@ _emptyDestination t@(Turn p _) = empty' . turnGameToTile' t
 _noPlayerHasMoves :: Turn -> Game -> Bool
 _noPlayerHasMoves _ g = not $ any (playerHasMoves g) (players g)
 
+_playerCanPlace :: Turn -> Game -> Bool
+_playerCanPlace _ g = playerHasMoves g (head $ players g)
+
 -- | Checks if the destination is x steps up/down and y steps left/right compared to original position
 _destinationIsRelativeTo :: (Int, Int) -> Turn -> Game -> Bool
 _destinationIsRelativeTo (x,y) t g = Pos x y == turnToPos' t - turnToPos t
 
+-- | Checks if the destination is diagonal from the original position.
+_isDiagonal :: Turn -> Game -> Bool
+_isDiagonal t g = abs x == abs y
+    where
+        (Pos x y) = turnToPos t - turnToPos' t
 
+-- checks if all tiles between the current to new position are empty recursively.
+-- WIP
+_recursive :: (Int, Int) -> Condition Turn -> Turn -> Game -> Bool
+_recursive (dx, dy) = undefined
 
 -- | Return whether or not 'k' in a row pieces, in all directions,
 -- can be found anywhere on the board.
@@ -159,6 +209,8 @@ _tileBelowIsNotEmpty t@(Turn p _) g =
 -- * Updates
 {- $update -}
 
+_skipTurn :: Turn -> Game -> Game
+_skipTurn _ g = g {players = cyclePlayers $ players g}
 
 -- | Return the resulting 'Turn' after shifting the input 'Turn' by a given amount
 _turnDirection :: (Int, Int) -> Turn -> Turn -> Turn

@@ -119,6 +119,9 @@ othello = emptyGame {
         Player "A",
         Player "B"
     ],
+    preTurnRules = [
+        If (NOT playerCanPlace) skipTurn
+    ],
     rules = [
         If (emptyTile `AND` changedState othelloRule)
             (placePiece >>> othelloRule)
@@ -130,29 +133,93 @@ othello = emptyGame {
 
 othelloRule = forEachDir allDirections (replaceUntil enemyTile allyTile)
 
-othello2 :: Game
-othello2 = emptyGame {
+
+chess :: Game
+chess = emptyGame {
     board = initRectBoard 8 8 [
-        ((4,4), Piece "O" (Player "A")),
-        ((5,5), Piece "X" (Player "B")),
-        ((3,3), Piece "O" (Player "A")),
-        ((3,2), Piece "O" (Player "A")),
-        ((4,5), Piece "X" (Player "B")),
-        ((5,4), Piece "X" (Player "B"))
+        ((1,7), Piece "p" (Player "White")),
+        ((2,7), Piece "p" (Player "White")),
+        ((3,7), Piece "p" (Player "White")),
+        ((4,7), Piece "p" (Player "White")),
+        ((5,7), Piece "p" (Player "White")),
+        ((6,7), Piece "p" (Player "White")),
+        ((7,7), Piece "p" (Player "White")),
+        ((8,7), Piece "p" (Player "White")),
+        ((1,8), Piece "r" (Player "White")),
+        ((2,8), Piece "h" (Player "White")),
+        ((3,8), Piece "b" (Player "White")),
+        ((4,8), Piece "q" (Player "White")),
+        ((5,8), Piece "k" (Player "White")),
+        ((6,8), Piece "b" (Player "White")),
+        ((7,8), Piece "h" (Player "White")),
+        ((8,8), Piece "r" (Player "White")),
+
+        ((1,2), Piece "P" (Player "Black")),
+        ((2,2), Piece "P" (Player "Black")),
+        ((3,2), Piece "P" (Player "Black")),
+        ((4,2), Piece "P" (Player "Black")),
+        ((5,2), Piece "P" (Player "Black")),
+        ((6,2), Piece "P" (Player "Black")),
+        ((7,2), Piece "P" (Player "Black")),
+        ((8,2), Piece "P" (Player "Black")),
+        ((1,1), Piece "R" (Player "Black")),
+        ((2,1), Piece "H" (Player "Black")),
+        ((3,1), Piece "B" (Player "Black")),
+        ((4,1), Piece "Q" (Player "Black")),
+        ((5,1), Piece "K" (Player "Black")),
+        ((6,1), Piece "B" (Player "Black")),
+        ((7,1), Piece "H" (Player "Black")),
+        ((8,1), Piece "R" (Player "Black"))
     ],
     pieces = [
-        Piece "O" (Player "A"),
-        Piece "X" (Player "B")
+        Piece "P" (Player "Black"),       
+        Piece "R" (Player "Black"),
+        Piece "H" (Player "Black"),
+        Piece "B" (Player "Black"),
+        Piece "Q" (Player "Black"),
+        Piece "K" (Player "Black"),
+        Piece "B" (Player "Black"),
+        Piece "H" (Player "Black"),
+        Piece "R" (Player "Black"),
+        Piece "p" (Player "White"),
+        Piece "r" (Player "White"),
+        Piece "h" (Player "White"),
+        Piece "b" (Player "White"),
+        Piece "q" (Player "White"),
+        Piece "k" (Player "White"),
+        Piece "b" (Player "White"),
+        Piece "h" (Player "White"),
+        Piece "r" (Player "White")
     ],
     players = [
-        Player "A",
-        Player "B"
+        Player "White",
+        Player "Black"
     ],
     rules = [
-        If (emptyTile `AND` changedState othelloRule)
-            (placePiece >>> othelloRule)
+        If (allyTile `AND` NOT allyDestination `AND` (pieceEqualTo "H" `OR` pieceEqualTo "h")) $ -- Knights (horses)
+            If isKnightMove movePiece,
+        If (allyTile `AND` NOT allyDestination `AND` pieceEqualTo "p") $ -- White pawns
+            If ((destinationIsRelativeTo (0,-1) `AND` emptyDestination)`OR`
+               ((destinationIsRelativeTo (1,-1) `OR` destinationIsRelativeTo (-1,-1)) `AND` enemyDestination)
+               `OR` (pieceBelongsToRow 7 `AND` destinationIsRelativeTo (0,-2)) `AND` emptyDestination)
+                    movePiece,
+        If (allyTile `AND` NOT allyDestination `AND` pieceEqualTo "P") $ -- Black pawns
+            If ((destinationIsRelativeTo (0,1) `AND` emptyDestination) `OR`
+               ((destinationIsRelativeTo (1,1) `OR` destinationIsRelativeTo (-1,1)) `AND` enemyDestination)
+               `OR` (pieceBelongsToRow 2 `AND` destinationIsRelativeTo (0,2)) `AND` emptyDestination)
+                    movePiece,
+        If (allyTile `AND` NOT allyDestination `AND` (pieceEqualTo "k" `OR` pieceEqualTo "K")) $ -- Kings
+            If isKingMove movePiece,
+        If (allyTile `AND` NOT allyDestination `AND` (pieceEqualTo "q" `OR` pieceEqualTo "Q")) $ -- Queen
+            If isQueenMove movePiece,
+        If (allyTile `AND` NOT allyDestination `AND` (pieceEqualTo "b" `OR` pieceEqualTo "B")) $ -- Bishop
+            If isBishopMove movePiece,
+        If (allyTile `AND` NOT allyDestination `AND` (pieceEqualTo "r" `OR` pieceEqualTo "R")) $ -- Rook
+            If isRookMove movePiece
     ],
     endConditions = [
-        If noPlayerHasMoves playerWithMostPiecesWins
+        If (pieceNotOnBoard (Piece "k" (Player "White")) 
+           `OR` pieceNotOnBoard (Piece "K" (Player "Black")))
+            currentPlayerWins
     ]
 }
