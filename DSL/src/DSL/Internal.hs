@@ -29,7 +29,8 @@ module DSL.Internal (
     _emptyTile,
     _emptyDestination,
     _destinationIsRelativeTo,
-    _isDiagonal,
+    _isDiagonalMove,
+    _isStraightMove,
     _noPlayerHasMoves,
     _playerCanPlace,
     _inARow,
@@ -152,12 +153,13 @@ _pieceEqualTo :: String -> Turn -> Game -> Bool
 _pieceEqualTo s (Turn p _) g = s == s'
     where (Piece s' _) = p
 
-_pieceOnBoard :: Piece -> Turn -> Game -> Bool
-_pieceOnBoard p _ g = p `elem` pieces
+_pieceOnBoard :: String -> Turn -> Game -> Bool
+_pieceOnBoard s _ g = s `elem` strings
     where
         b = board g
         filteredBoard = filter (not . empty') $ concat b
         pieces = [p | (PieceTile p pos) <- filteredBoard]
+        strings = [str | (Piece str player) <- pieces]
 
 -- | Return whether or not the current tile the turn is referring to is empty.
 _emptyTile :: Turn -> Game -> Bool
@@ -179,8 +181,14 @@ _destinationIsRelativeTo :: (Int, Int) -> Turn -> Game -> Bool
 _destinationIsRelativeTo (x,y) t g = Pos x y == turnToPos' t - turnToPos t
 
 -- | Checks if the destination is diagonal from the original position.
-_isDiagonal :: Turn -> Game -> Bool
-_isDiagonal t g = abs x == abs y
+_isDiagonalMove :: Turn -> Game -> Bool
+_isDiagonalMove t g = abs x == abs y
+    where
+        (Pos x y) = turnToPos t - turnToPos' t
+
+-- | Checks if the destination is horizontal or vertical from the original position.
+_isStraightMove :: Turn -> Game -> Bool
+_isStraightMove t g = x == 0 || y == 0
     where
         (Pos x y) = turnToPos t - turnToPos' t
 

@@ -38,17 +38,19 @@ module DSL.Lib (
     pieceBelongsToRow,
     boardIsFull,
     changedState,
+    emptyTile,
     allyTile,
     enemyTile,
     pieceEqualTo,
-    pieceOnBoard,
-    pieceNotOnBoard,
-    emptyTile,
+    pieceEqualToEither,
     emptyDestination,
     allyDestination,
     enemyDestination,
     destinationIsRelativeTo,
-    isDiagonal,
+    isDiagonalMove,
+    isStraightMove,
+    pieceOnBoard,
+    pieceNotOnBoard,
     noPlayerHasMoves,
     playerCanPlace,
     inARow,
@@ -198,19 +200,20 @@ skipTurn = Rule $ Update _skipTurn
 -- * Conditions
 {- $condition -}
 
+
 -- | A condition that is always 'True'
 trueCond :: Condition Turn
-trueCond = Condition (\t g -> True)
+trueCond = Condition (\_ _ -> True)
 
 -- | A condition that is always 'False'
 falseCond :: Condition Turn
-falseCond = Condition (\t g -> False)
+falseCond = Condition (\_ _-> False)
 
 pieceIsAtPos :: Pos -> Condition Turn 
-pieceIsAtPos pos = Condition $ _pieceIsAtPos pos
+pieceIsAtPos = Condition . _pieceIsAtPos
 
 pieceBelongsToRow :: Int -> Condition Turn
-pieceBelongsToRow i = Condition $ _pieceBelongsToRow i
+pieceBelongsToRow = Condition . _pieceBelongsToRow
 
 -- | Checks if the board is full
 boardIsFull :: Condition a
@@ -219,6 +222,10 @@ boardIsFull = Condition _boardIsFull
 -- | A condition for checking if a 'Rule' would change the state of the board. 
 changedState :: Rule -> Condition Turn
 changedState r = Condition $ _changedState r
+
+-- | A `Condition` for checking if the current tile is empty
+emptyTile :: Condition Turn
+emptyTile = Condition _emptyTile
 
 -- | A `Condition` for checking if the piece (on given tile) belongs to the current player
 allyTile :: Condition Turn
@@ -232,27 +239,19 @@ enemyTile = Condition $ _comparePlayerOnTile (/=)
 pieceEqualTo :: String -> Condition Turn
 pieceEqualTo = Condition . _pieceEqualTo
 
--- | A `Condition` for checking if the piece is on the board.
-pieceOnBoard :: Piece -> Condition Turn
-pieceOnBoard = Condition . _pieceOnBoard
-
--- | A `Condition` for checking if the piece is not on the board. Inverse of `pieceOnBoard`.
-pieceNotOnBoard :: Piece -> Condition Turn
-pieceNotOnBoard = NOT . pieceOnBoard
-
--- | A `Condition` for checking if the current tile is empty
-emptyTile :: Condition Turn
-emptyTile = Condition _emptyTile
+-- | A `Condition` for
+pieceEqualToEither :: [String] -> Condition Turn
+pieceEqualToEither = foldl (\a b -> a `OR` pieceEqualTo b) falseCond
 
 -- | A `Condition` for checking if the destination tile is empty
 emptyDestination :: Condition Turn 
 emptyDestination = Condition _emptyDestination
 
-
 -- | A `Condition` for checking if the destination belongs to the player
 allyDestination :: Condition Turn
 allyDestination = Condition $ _comparePlayerOnDestination (==)
 
+-- | A `Condition` for checking if the destination belongs to the enemy
 enemyDestination :: Condition Turn
 enemyDestination = Condition (_comparePlayerOnDestination (/=)) `AND` NOT emptyDestination
 
@@ -260,8 +259,19 @@ enemyDestination = Condition (_comparePlayerOnDestination (/=)) `AND` NOT emptyD
 destinationIsRelativeTo :: (Int, Int) -> Condition Turn
 destinationIsRelativeTo = Condition . _destinationIsRelativeTo
 
-isDiagonal :: Condition Turn
-isDiagonal = Condition _isDiagonal
+isDiagonalMove :: Condition Turn
+isDiagonalMove = Condition _isDiagonalMove
+
+isStraightMove :: Condition Turn
+isStraightMove = Condition _isStraightMove
+
+-- | A `Condition` for checking if the piece is on the board.
+pieceOnBoard :: String -> Condition Turn
+pieceOnBoard = Condition . _pieceOnBoard
+
+-- | A `Condition` for checking if the piece is not on the board. Inverse of `pieceOnBoard`.
+pieceNotOnBoard :: String -> Condition Turn
+pieceNotOnBoard = NOT . pieceOnBoard
 
 -- | Returns `True` if no player has any valid moves, `False` otherwise
 noPlayerHasMoves :: Condition Turn
@@ -290,17 +300,18 @@ isKnightMove = destinationIsRelativeTo (1,2) `OR` destinationIsRelativeTo (1,-2)
 -- | A condition for determining if the turn is a king move in the game chess.
 --   Note that this condition is not exclusive to the game chess, but is just a name for the condition
 isKingMove :: Condition Turn
-isKingMove = foldl OR falseCond [destinationIsRelativeTo (i,j) | i <- [-1..1], j <- [-1..1], not (i==0 && j==0)]
+isKingMove = foldl OR falseCond
+    [destinationIsRelativeTo (i,j) | i <- [-1..1], j <- [-1..1], not (i==0 && j==0)]
 
 -- | A condition for determining if the turn is a rook move in the game chess.
 --   Note that this condition is not exclusive to the game chess, but is just a name for the condition
 isRookMove :: Condition Turn
-isRookMove = falseCond
+isRookMove = isStraightMove `AND` (All emptyTile tilesBetweenTwoCoords)
 
 -- | A condition for determining if the turn is a bishop move in the game chess.
 --   Note that this condition is not exclusive to the game chess, but is just a name for the condition
 isBishopMove :: Condition Turn
-isBishopMove = falseCond
+isBishopMove = isDiagonalMove `AND` (All emptyTile tilesBetweenTwoCoords)
 
 -- | A condition for determining if the turn is a queen move in the game chess.
 --   Note that this condition is not exclusive to the game chess, but is just a name for the condition
@@ -309,7 +320,6 @@ isQueenMove = isRookMove `OR` isBishopMove
 
 -- * Updates
 {- $update -}
-
 
 -- | A list containing all directions
 allDirections :: [Update Turn]

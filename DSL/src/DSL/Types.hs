@@ -44,7 +44,7 @@ data Turn = Turn
     {
         piece  :: Piece,
         action :: Action
-    }
+    } deriving Show
 
 -- | Represent a move that a piece can make
 data Action = Place Pos | Move Pos Pos deriving (Show)
@@ -72,7 +72,8 @@ data Rule = Rule      (Update Game)            -- ^ Updates the game
           | Rule `SEQ`   Rule                  -- ^ Runs two 'Rule' sequentially, if any of 
                                                --   them fail the resulting rule is ignored
           | Rule `THEN`  Rule                  -- ^ Runs two 'Rule' sequentially, if a 'Rule'
-                                               --   fails only the rules that follow are ignored
+                                               --   fails it continues with the previous 
+                                               --   successful value
           | IterateUntil Rule (Condition Turn) -- ^ Run a 'Rule' until the end condition is met.
                                                --   If the rule fails before the end condition
                                                --   is met the result is ignored
@@ -82,6 +83,8 @@ data Condition a = Condition (a -> Game -> Bool)     -- ^ Represent a simple con
                  | (Condition a) `AND` (Condition a) -- ^ If both conditions are 'True'
                  | (Condition a) `OR`  (Condition a) -- ^ If either conditions are 'True'
                  | NOT (Condition a)                 -- ^ Negates a 'Condition'
+                 | All (Condition a) (Turn -> Game -> [a])      -- ^ If a condition returns true on all element in a list
+                 | Any (Condition a) (Turn -> Game -> [a])      -- ^ If a condition returns true on any element in a list
 
 
 -- | A simple two-dimensional vector object containing a 'x' and a 'y' value
@@ -119,9 +122,9 @@ instance Num Pos where
     (Pos x y) + (Pos x' y') = Pos (x+x') (y+y')
     (Pos x y) - (Pos x' y') = Pos (x-x') (y-y')
     (Pos x y) * (Pos x' y') = Pos (x*x') (y*y')
-    signum p = p
-    abs _ = Pos 1 1
-    fromInteger i = Pos (fromIntegral i) (fromIntegral i)
+    signum (Pos x y)        = Pos (signum x) (signum y)
+    abs    (Pos x y)        = Pos (abs x) (abs y)
+    fromInteger i           = Pos (fromIntegral i) (fromIntegral i)
 
 
 -- * Testing

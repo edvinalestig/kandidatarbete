@@ -7,5 +7,5 @@ import DSL.Utility
 import TestGames
 
 main :: IO ()
-main = playGame tictactoe
+main = playGame chess
 

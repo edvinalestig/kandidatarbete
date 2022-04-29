@@ -5,6 +5,7 @@ Description : A Haskell module containing various utility functions
 module DSL.Utility where
 
 import DSL.Types
+import Data.List
 
 
 -- | Current player is put last in the player list
@@ -40,6 +41,14 @@ turnGameToTile t g = getTile (board g) (turnToPos t)
 -- | Extract the `Tile` from a `Board` and `Pos`. It calls `getTile`.
 turnGameToTile' :: Turn -> Game -> Tile
 turnGameToTile' t g = getTile (board g) (turnToPos' t)
+
+tilesBetweenTwoCoords :: Turn -> Game -> [Turn]
+tilesBetweenTwoCoords (Turn p (Move pos pos')) g = do
+    let relativePos = signum $ pos' - pos
+        newPos = pos + relativePos
+    if relativePos == Pos 0 0 || (signum $ pos' - newPos) == Pos 0 0 then []
+        else (Turn p (Place newPos)) : tilesBetweenTwoCoords (Turn p (Move newPos pos')) g
+tilesBetweenTwoCoords _ g = error "Only compatible with move"
 
 
 -- * Bool
@@ -111,11 +120,7 @@ getPiece' b pos = case getTile b pos of
 getPlayer :: Piece -> Player
 getPlayer (Piece _ p) = p
 
-row :: Int -> Board -> [Tile]
-row i b = b !! i
 
-col :: Int -> Board -> [Tile]
-col i b = undefined -- Todo: remove or implement
 -- * Other
 
 -- | Replaces an elemenent with the input at a given index
