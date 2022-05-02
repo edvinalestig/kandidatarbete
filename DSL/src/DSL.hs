@@ -15,13 +15,11 @@ module DSL (
 import DSL.Lib
 import DSL.Types
 import DSL.Utility
-import DSL.Run
-import DSL.Internal (isValidInput, playerHasMoves, filterPieces)
-import Data.List (transpose, group)
-import Control.Monad.Random (evalRandIO, MonadRandom (getRandomR))
-import Data.Bifunctor (Bifunctor(bimap))
-import Data.List.Split (chunksOf, splitOn)
-import Text.Read (readMaybe)
+import DSL.Run ( runRule )
+import DSL.Internal ( isValidInput, filterPieces )
+import Data.List.Split ( splitOn )
+import Text.Read ( readMaybe )
+import Control.Monad ( when )
 import Data.Maybe ( isJust, fromMaybe, catMaybes )
 
 -- | Plays a game
@@ -29,36 +27,29 @@ playGame :: Game -> IO ()
 playGame g = do
     dispFunction g g
 
+    let g' = applyRules nullTurn g preTurnRules
+    when (g /= g') (playGame g')
+
     let currPlayer = head $ players g
-    let g' = applyRules (Turn (Piece "" (Player "")) (Place (Pos 0 0))) g preTurnRules
-    if board g' /= board g || players g' /= players g then
-        playGame g'
-    --if not (playerHasMoves g currPlayer) then do
-        --putStrLn $ "Player " ++ show currPlayer ++ "'s turn is skipped - no valid moves"
-        --playGame $ g {players = cyclePlayers $ players g}
-    --else do
-    else do
-        putStrLn $ "Player " ++ show currPlayer ++ "'s turn"
-        input <- getValidInput g
-        piece <- case input of
-                        Move pos _ -> return $ getPiece (board g) pos
-                        Place _ -> getValidPiece currPlayer (pieces g)
+    putStrLn $ "Player " ++ show currPlayer ++ "'s turn"
 
-        let newGame = playTurn (Turn piece input) g
+    input <- getValidInput g
+    piece <- getInputPiece g input
 
-        -- Check if nothing happened on the board to give feedback to the user
-        -- Todo: Determine if this is the way to do it, now it assumes that all moves include changes to the board
-        if board g == board newGame && players g == players newGame then 
-            putStrLn "Input move does not follow the rules" >>
-            playGame newGame
+    let newGame = playTurn (Turn piece input) g
 
-        else if gameEnded newGame then
-            dispFunction g newGame >>
-            case winner newGame of
-                Nothing -> putStrLn "Draw!"
-                Just p -> putStrLn $ "Player " ++ show p ++ " has won!"
-        else
-            playGame newGame
+    -- Check if nothing happened on the board to give feedback to the user
+    if g == newGame then 
+        putStrLn "Input move does not follow the rules" >>
+        playGame newGame
+
+    else if gameEnded newGame then
+        dispFunction g newGame >>
+        case winner newGame of
+            Nothing -> putStrLn "Draw!"
+            Just p -> putStrLn $ "Player " ++ show p ++ " has won!"
+    else
+        playGame newGame
 
 -- | Plays one turn and apply each rule.
 playTurn :: Turn -> Game -> Game
@@ -91,7 +82,7 @@ getValidInput g = do
 
     let (func:coords) = splitOn " " input
 
-    let action = case func of
+    action <- case func of
             "place"  -> if length coords /= 1 then do
                             putStrLn "Input does not follow specification"
                             getValidInput g
@@ -104,11 +95,14 @@ getValidInput g = do
                             return $ handleMove coords
             _ -> do putStrLn "Input does not follow specification"
                     getValidInput g
-    a <- action
-    case a of
-        Move pos _ -> if empty' $ getTile (board g) pos then getValidInput g else action
-        Place pos -> action 
+    case action of
+        Move pos _ -> if empty' $ getTile (board g) pos then getValidInput g else return action
+        Place pos -> return action 
 
+getInputPiece :: Game -> Action -> IO Piece
+getInputPiece g input = case input of
+                    Move pos _ -> return $ getPiece (board g) pos
+                    Place _ -> getValidPiece (head $ players g) (pieces g)
 
 
 handlePlace :: [String] -> Action

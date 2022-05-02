@@ -156,6 +156,9 @@ instance Num Pos where
     abs    (Pos x y)        = Pos (abs x) (abs y)
     fromInteger i           = Pos (fromIntegral i) (fromIntegral i)
 
+instance Eq Game where
+    g1 == g2 = board g1 == board g2 && players g1 == players g2
+
 
 -- * Testing
 
