@@ -94,7 +94,7 @@ import DSL.Internal
 -- | An empty `Game` used to base games on
 game :: Game
 game = Game {
-    board = undefined,
+    board = error "No board provided, please provide a board",
     pieces = [],
     players = [],
     preTurnRules = [],
