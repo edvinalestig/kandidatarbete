@@ -18,8 +18,8 @@ runUpdate (u1 `COMBINE` u2) t g = runUpdate u2 t (runUpdate u1 t g)
 runRule :: Rule -> Turn -> Game -> Maybe Game
 runRule (Rule f)         t g = Just (runUpdate f t g)
 runRule (TurnRule f r)   t g = runRule r (runUpdate f t t) g
-runRule (If c r)         t g = if isWithinBoard t g && runCondition c t g then runRule r t g else Nothing
-runRule (IfElse c r1 r2) t g = if isWithinBoard t g && runCondition c t g then runRule r1 t g else runRule r2 t g
+runRule (If c r)         t g = if runCondition c t g then runRule r t g else Nothing
+runRule (IfElse c r1 r2) t g = if runCondition c t g then runRule r1 t g else runRule r2 t g
 runRule (r1 `SEQ` r2)    t g = runRule r1 t g >>= runRule r2 t -- equal to: if isJust (runRule r1 t g) then runRule r2 t (fromJust iter1) else Nothing
 runRule (r1 `THEN` r2)   t g = case runRule r1 t g of
                                     Just c  -> runRule r2 t c
@@ -52,10 +52,10 @@ runUntil _ _ _ g = error "Cannot have an IterateUntil without TurnRule"
 
 -- | Run function for the data type 'Condition'
 runCondition :: Condition Turn -> Turn -> Game -> Bool
-runCondition (Condition c) t g = c t g
+runCondition (Condition c) t g = isWithinBoard t g && c t g
 runCondition (c1 `AND` c2) t g = runCondition c1 t g && runCondition c2 t g
 runCondition (c1 `OR` c2)  t g = runCondition c1 t g || runCondition c2 t g
 runCondition (NOT c)       t g = not $ runCondition c t g
-runCondition (All (Condition c) f) t g = and $ map (\t' -> runCondition (Condition c) t' g) (f t g)
-runCondition (Any (Condition c) f) t g = or $ map (\t' -> runCondition (Condition c) t' g) (f t g)
+runCondition (All c f)     t g = all (\t' -> runCondition c t' g) (f t g)
+runCondition (Any c f)     t g = any (\t' -> runCondition c t' g) (f t g)
 
