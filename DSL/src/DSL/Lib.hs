@@ -10,7 +10,7 @@ board games and also helper functions to these rules
 module DSL.Lib (
     -- * Game
     -- $game
-    emptyGame,
+    game,
 
     -- * Boards
     -- $board
@@ -92,8 +92,8 @@ import DSL.Internal
 {- $game -}
 
 -- | An empty `Game` used to base games on
-emptyGame :: Game
-emptyGame = Game {
+game :: Game
+game = Game {
     board = undefined,
     pieces = [],
     players = [],
@@ -115,7 +115,7 @@ rectBoard w h = [[Empty (Pos x y) | x <- [0..w-1]] | y <- [0..h-1]]
 -- | Creates an rectangular board with pieces in certain locations
 initRectBoard :: Int -> Int -> [((Int, Int), Piece)] -> Board
 initRectBoard w h []              = rectBoard w h
-initRectBoard w h (((x,y), p):as) = board $ _placePiece (placeTurn p (x-1) (y-1)) $ emptyGame {board = initRectBoard w h as}
+initRectBoard w h (((x,y), p):as) = board $ _placePiece (placeTurn p (x-1) (y-1)) $ game {board = initRectBoard w h as}
 
 
 -- * Rules

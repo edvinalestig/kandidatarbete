@@ -7,7 +7,7 @@ import DSL
 
 -- tic-tac-toe
 tictactoe :: Game
-tictactoe = emptyGame {
+tictactoe = game {
     board = rectBoard 3 3,
     pieces = [
         Piece "X" (Player "A"),
@@ -28,7 +28,7 @@ tictactoe = emptyGame {
 
 -- Testing the move functionality
 movetest :: Game
-movetest = emptyGame {
+movetest = game {
     board = initRectBoard 8 8 [
         ((2,2), Piece "O" (Player "B"))
     ],
@@ -62,7 +62,7 @@ movetest = emptyGame {
 
 -- | m,n,k-game
 tictactoeVariant :: Int -> Int -> Int -> Game
-tictactoeVariant x y z = emptyGame {
+tictactoeVariant x y z = game {
     board = rectBoard x y,
     pieces = [
         Piece "X" (Player "A"),
@@ -84,7 +84,7 @@ tictactoeVariant x y z = emptyGame {
 }
 
 connectFour :: Game
-connectFour = emptyGame {
+connectFour = game {
     board = rectBoard 7 6,
     pieces = [
         Piece "R" (Player "A"),
@@ -104,7 +104,7 @@ connectFour = emptyGame {
 }
 
 othello :: Game
-othello = emptyGame {
+othello = game {
     board = initRectBoard 8 8 [
         ((4,4), Piece "O" (Player "A")),
         ((5,5), Piece "O" (Player "A")),
@@ -135,7 +135,7 @@ othelloRule = ForEachDir allDirections (replaceUntil enemyTile allyTile)
 
 
 chess :: Game
-chess = emptyGame {
+chess = game {
     board = initRectBoard 8 8 [
         ((1,7), Piece "p" (Player "White")),
         ((2,7), Piece "p" (Player "White")),
