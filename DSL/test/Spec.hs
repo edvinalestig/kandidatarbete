@@ -6,7 +6,7 @@ import DSL.Types
 import DSL.Utility
 import DSL.Internal
 import DSL
-import TestGames
+import ExampleGames
 import TicTacToeTests
 import OthelloTests
 

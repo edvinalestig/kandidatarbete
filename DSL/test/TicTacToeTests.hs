@@ -12,7 +12,7 @@ import Test.QuickCheck
 import DSL.Types
 import DSL.Utility
 import DSL
-import TestGames
+import ExampleGames
 import Data.Maybe (isNothing, fromJust)
 import Data.List (nub)
 

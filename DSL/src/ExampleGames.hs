@@ -1,4 +1,4 @@
-module TestGames where
+module ExampleGames where
 
 import DSL.Types
 import DSL.Lib

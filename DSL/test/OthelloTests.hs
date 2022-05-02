@@ -12,7 +12,7 @@ import Test.QuickCheck
 import DSL.Types
 import DSL
 import DSL.Lib
-import TestGames
+import ExampleGames
 import Data.Maybe (isNothing)
 
 prop_othello_correctChangesStraightLines :: Property
