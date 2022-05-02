@@ -65,18 +65,48 @@ data Update t = Update (Turn -> t -> t)         -- ^ Represent an update to a ty
 (>>>) = THEN
 
 -- | Rule
-data Rule = Rule      (Update Game)            -- ^ Updates the game 
-          | TurnRule  (Update Turn) Rule       -- ^ Runs a 'Rule' at the at the given 'Turn'
-          | If     (Condition Turn) Rule       -- ^ Runs the rule only if a condition applies
-          | IfElse (Condition Turn) Rule Rule  -- ^ A condition with two outcomes
-          | Rule `SEQ`   Rule                  -- ^ Runs two 'Rule' sequentially, if any of 
-                                               --   them fail the resulting rule is ignored
-          | Rule `THEN`  Rule                  -- ^ Runs two 'Rule' sequentially, if a 'Rule'
-                                               --   fails it continues with the previous 
-                                               --   successful value
-          | IterateUntil Rule (Condition Turn) -- ^ Run a 'Rule' until the end condition is met.
-                                               --   If the rule fails before the end condition
-                                               --   is met the result is ignored
+data Rule  
+        -- | Updates the game 
+    = Rule      (Update Game)            
+        -- | Runs a 'Rule' at the at the given 'Turn'
+    | TurnRule  (Update Turn) Rule       
+        -- | Runs the rule only if a condition applies
+    | If     (Condition Turn) Rule       
+        -- | A condition with two outcomes
+    | IfElse (Condition Turn) Rule Rule  
+        -- | Runs two 'Rule' sequentially, if any of 
+        --   them fail the resulting rule is ignored
+    | Rule `SEQ`   Rule                  
+        -- | Runs two 'Rule' sequentially, if a 'Rule'
+        --   fails it continues with the previous 
+        --   successful value
+    | Rule `THEN`  Rule                  
+        -- | Run a 'Rule' until the end condition is met.
+        --   If the rule fails before the end condition
+        --   is met the result is ignored
+    | IterateUntil Rule (Condition Turn) 
+
+        -- | For each direction, apply every 'Rule' once and return the result.
+        -- If any rule fail to apply the result is ignored.
+        --
+        -- Example use:
+        --
+        -- > forAllDir diagonalDirections (replaceUntil enemyTile allyTile)
+        --
+        -- The example replaces iterates over the diagonal directions
+        -- and replaces each enemyTile until an allyTile is met.
+    | ForAllDir [Update Turn] (Update Turn -> Rule)
+
+        -- | For each direction, apply each 'Rule' once and return the result.
+        -- If any rule fail to apply it will simply ignore that rule and continue with the next one.
+        --
+        -- Example use:
+        --
+        -- > forEachDir diagonalDirections (replaceUntil enemyTile allyTile)
+        --
+        -- The example replaces iterates over the diagonal directions
+        -- and replaces each enemyTile until an allyTile is met.
+    | ForEachDir [Update Turn] (Update Turn -> Rule)
 
 -- | Condition
 data Condition a = Condition (a -> Game -> Bool)     -- ^ Represent a simple condition

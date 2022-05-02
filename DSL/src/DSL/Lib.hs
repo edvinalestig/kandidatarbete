@@ -24,8 +24,6 @@ module DSL.Lib (
     gameDraw,
     currentPlayerWins,
     playerWithMostPiecesWins,
-    forAllDir,
-    forEachDir,
     doUntil,
     replaceUntil,
     skipTurn,
@@ -142,34 +140,6 @@ currentPlayerWins = Rule $ Update _currentPlayerWins
 -- | A `Rule` for when the player with the most pieces out on the board wins
 playerWithMostPiecesWins :: Rule
 playerWithMostPiecesWins = Rule $ Update _playerWithMostPiecesWins
-
--- | For each direction, apply every 'Rule' once and return the result.
--- If any rule fail to apply the result is ignored.
---
--- Example use:
---
--- > forAllDir diagonalDirections (replaceUntil enemyTile allyTile)
---
--- The example replaces iterates over the diagonal directions
--- and replaces each enemyTile until an allyTile is met.
-forAllDir :: [Update Turn] -> (Update Turn -> Rule) -> Rule
-forAllDir [] f = error "no input is found"
-forAllDir [t] f = f t
-forAllDir (t:ts) f = f t >=> forAllDir ts f
-
--- | For each direction, apply each 'Rule' once and return the result.
--- If any rule fail to apply it will simply ignore that rule and continue with the next one.
---
--- Example use:
---
--- > forEachDir diagonalDirections (replaceUntil enemyTile allyTile)
---
--- The example replaces iterates over the diagonal directions
--- and replaces each enemyTile until an allyTile is met.
-forEachDir :: [Update Turn] -> (Update Turn -> Rule) -> Rule
-forEachDir [] f = error "no input is found"
-forEachDir [t] f = f t
-forEachDir (t:ts) f = f t >>> forEachDir ts f
 
 -- | Iterate a 'Rule' until a 'Condition' is met over an @'Update' 'Turn'@
 --

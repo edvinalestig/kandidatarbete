@@ -25,6 +25,13 @@ runRule (r1 `THEN` r2)   t g = case runRule r1 t g of
                                     Just c  -> runRule r2 t c
                                     Nothing -> runRule r2 t g
 runRule (IterateUntil r c) t g = runUntilMain c r t g
+runRule (ForAllDir ts f)   t g = runRule (iterateDir ts f (>=>)) t g
+runRule (ForEachDir ts f)  t g = runRule (iterateDir ts f (>>>)) t g
+
+iterateDir :: [Update Turn] -> (Update Turn -> Rule) -> (Rule -> Rule -> Rule) -> Rule
+iterateDir []     _ _  = error "no input is found"
+iterateDir [t]    f _  = f t
+iterateDir (t:ts) f op = f t `op` iterateDir ts f op
 
 -- | Uses `runUntil`, if the result is Left then that result of `runUntil` is returned.
 -- If the result is Right then the input `Game` is returned.

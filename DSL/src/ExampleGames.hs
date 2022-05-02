@@ -131,7 +131,7 @@ othello = emptyGame {
     ]
 }
 
-othelloRule = forEachDir allDirections (replaceUntil enemyTile allyTile)
+othelloRule = ForEachDir allDirections (replaceUntil enemyTile allyTile)
 
 
 chess :: Game
