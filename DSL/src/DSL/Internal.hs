@@ -72,7 +72,7 @@ import DSL.Run (runRule)
 -- | Places a piece in a certain position on the board
 _placePiece :: Turn -> Game -> Game
 _placePiece t@(Turn p (Place _)) g = replacePiece tile g
-    where tile = PieceTile p $ turnToPos t
+    where tile = PieceTile p $ origin t
 _placePiece _ g = g
 
 -- | Moves a pieces to a absolute position on the board
@@ -131,7 +131,7 @@ _changedState r t g = board g /= maybe [] board mg
 -- The first piece is given as input, the second piece is located on the board.
 _comparePieceOnTile :: (Piece -> Piece -> Bool) -> Turn -> Game -> Bool
 _comparePieceOnTile f t@(Turn p _) g =
-    case turnGameToTile t g of
+    case originTile t g of
         (PieceTile p' _) -> p `f` p'
         _                -> False
 
@@ -139,13 +139,13 @@ _comparePieceOnTile f t@(Turn p _) g =
 -- specified on the board
 _comparePlayerOnTile :: (Player -> Player -> Bool) -> Turn -> Game -> Bool
 _comparePlayerOnTile f t g =
-    case turnGameToTile t g of
+    case originTile t g of
         (PieceTile p' _) -> getPlayer p' `f` head (players g)
         _               -> False
 
 _comparePlayerOnDestination :: (Player -> Player -> Bool) -> Turn -> Game -> Bool
 _comparePlayerOnDestination f t g =
-    case turnGameToTile' t g of
+    case destinationTile t g of
         (PieceTile p' _) -> getPlayer p' `f` head (players g)
         _               -> False
 
@@ -163,11 +163,11 @@ _pieceOnBoard s _ g = s `elem` strings
 
 -- | Return whether or not the current tile the turn is referring to is empty.
 _emptyTile :: Turn -> Game -> Bool
-_emptyTile t = empty' . turnGameToTile t
+_emptyTile t = empty' . originTile t
 
 -- | Return whether or not the destination tile the turn is referring to is empty.
 _emptyDestination :: Turn -> Game -> Bool
-_emptyDestination t@(Turn p _) = empty' . turnGameToTile' t
+_emptyDestination t@(Turn p _) = empty' . destinationTile t
 
 -- | Returns `True` if no player has any valid moves, `False` otherwise
 _noPlayerHasMoves :: Turn -> Game -> Bool
@@ -178,19 +178,19 @@ _playerCanPlace _ g = playerHasMoves g (head $ players g)
 
 -- | Checks if the destination is x steps up/down and y steps left/right compared to original position
 _destinationIsRelativeTo :: (Int, Int) -> Turn -> Game -> Bool
-_destinationIsRelativeTo (x,y) t g = Pos x y == turnToPos' t - turnToPos t
+_destinationIsRelativeTo (x,y) t g = Pos x y == destination t - origin t
 
 -- | Checks if the destination is diagonal from the original position.
 _isDiagonalMove :: Turn -> Game -> Bool
 _isDiagonalMove t g = abs x == abs y
     where
-        (Pos x y) = turnToPos t - turnToPos' t
+        (Pos x y) = origin t - destination t
 
 -- | Checks if the destination is horizontal or vertical from the original position.
 _isStraightMove :: Turn -> Game -> Bool
 _isStraightMove t g = x == 0 || y == 0
     where
-        (Pos x y) = turnToPos t - turnToPos' t
+        (Pos x y) = origin t - destination t
 
 -- checks if all tiles between the current to new position are empty recursively.
 -- WIP
@@ -211,7 +211,7 @@ _tileBelowIsNotEmpty t@(Turn p _) g =
     y >= maxY || not (_emptyTile (placeTurn p x (y+1)) g)
     where
         maxY = length (board g) - 1 -- Bottom row
-        (Pos x y) = turnToPos t
+        (Pos x y) = origin t
 
 
 -- * Updates

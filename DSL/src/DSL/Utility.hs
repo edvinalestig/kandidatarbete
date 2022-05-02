@@ -25,7 +25,7 @@ placeTurn' p pos = Turn p (Place pos)
 
 -- | "Combines" two turns by adding the coordinates of the their `Action`, maybe poorly named
 combineTurn :: Turn -> Turn -> Turn
-combineTurn t1 t2@(Turn p _) = placeTurn' p (turnToPos t1 + turnToPos t2)
+combineTurn t1 t2@(Turn p _) = placeTurn' p (origin t1 + origin t2)
 
 
 -- * Tile
@@ -35,12 +35,12 @@ getTile :: Board -> Pos -> Tile
 getTile b (Pos x y) = (b !! y) !! x
 
 -- | Extract the `Tile` from a `Board` and `Pos`. It calls `getTile`.
-turnGameToTile :: Turn -> Game -> Tile
-turnGameToTile t g = getTile (board g) (turnToPos t)
+originTile :: Turn -> Game -> Tile
+originTile t g = getTile (board g) (origin t)
 
 -- | Extract the `Tile` from a `Board` and `Pos`. It calls `getTile`.
-turnGameToTile' :: Turn -> Game -> Tile
-turnGameToTile' t g = getTile (board g) (turnToPos' t)
+destinationTile :: Turn -> Game -> Tile
+destinationTile t g = getTile (board g) (destination t)
 
 tilesBetweenTwoCoords :: Turn -> Game -> [Turn]
 tilesBetweenTwoCoords (Turn p (Move pos pos')) g = do
@@ -77,7 +77,7 @@ samePiece p (PieceTile p2 _) = p == p2
 
 -- | Helper function to check if a 'Turn' results in a position within the board's boundaries.
 isWithinBoard :: Turn -> Game -> Bool
-isWithinBoard t g = isWithinBoard' (turnToPos' t) g && isWithinBoard' (turnToPos t) g
+isWithinBoard t g = isWithinBoard' (destination t) g && isWithinBoard' (origin t) g
     where
         isWithinBoard' (Pos x y) g = x >= 0 && x < (length . head . board) g && y >= 0 && y < (length . board) g
 
@@ -89,14 +89,14 @@ getPos (PieceTile _ pos) = pos
 getPos (Empty pos) = pos
 
 -- | Extract resulting `Pos` of a @Turn@.
-turnToPos :: Turn -> Pos
-turnToPos (Turn _ (Place pos))  = pos
-turnToPos (Turn _ (Move pos _)) = pos
+origin :: Turn -> Pos
+origin (Turn _ (Place pos))  = pos
+origin (Turn _ (Move pos _)) = pos
 
 -- | Extract resulting `Pos` of a @Turn@.
-turnToPos' :: Turn -> Pos
-turnToPos' (Turn _ (Place pos))  = pos
-turnToPos' (Turn _ (Move _ pos)) = pos
+destination :: Turn -> Pos
+destination (Turn _ (Place pos))  = pos
+destination (Turn _ (Move _ pos)) = pos
 
 
 -- * Piece
