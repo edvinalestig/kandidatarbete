@@ -1,4 +1,4 @@
-module Othello where
+module Othello2 where
 
 import Data.Traversable
 import Data.List
