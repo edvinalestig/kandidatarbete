@@ -31,7 +31,7 @@ dependencies:
 library:
   source-dirs: src
   ghc-options:
-  - -Wall -Werror
+  - -Wall
 
 executables:
   DSL-exe:

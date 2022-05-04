@@ -14,11 +14,13 @@ module DSL.Internal (
     _makeDraw,
     _currentPlayerWins,
     _playerWithMostPiecesWins,
+    _convertToPiece,
 
     -- * Conditions
     -- $condition
     _pieceIsAtPos,
-    _pieceBelongsToRow,
+    _pieceOriginBelongsToRow,
+    _pieceDestinationBelongsToRow,
     _boardIsFull,
     _changedState,
     _comparePieceOnTile,
@@ -98,6 +100,10 @@ _currentPlayerWins _ = updateWinner $ Just . head . players
 _playerWithMostPiecesWins :: Turn -> Game -> Game
 _playerWithMostPiecesWins _ = updateWinner playerWithMostPieces
 
+_convertToPiece :: String -> Turn -> Turn -> Turn
+_convertToPiece s (Turn (Piece _ player) (Move _ pos2)) _ = placeTurn' (Piece s player) pos2
+_convertToPiece _ _ _ = error "undefined"
+
 
 -- *  Conditions
 {- $condition -}
@@ -107,13 +113,19 @@ _pieceIsAtPos :: Pos -> Turn -> Game -> Bool
 _pieceIsAtPos pos' (Turn _ (Move pos _)) _ = pos == pos'
 _pieceIsAtPos _ _ _ = False
 
+-- Moving from a tile
+_pieceOriginBelongsToRow :: Int -> Turn -> Game -> Bool
+_pieceOriginBelongsToRow = _pieceBelongsToRow origin
 
-_pieceBelongsToRow :: Int -> Turn -> Game -> Bool
-_pieceBelongsToRow i (Turn p (Move pos _)) g = tile `elem` row
+-- Moving to a tile
+_pieceDestinationBelongsToRow :: Int -> Turn -> Game -> Bool
+_pieceDestinationBelongsToRow = _pieceBelongsToRow destination
+
+_pieceBelongsToRow :: (Turn -> Pos) -> Int -> Turn -> Game -> Bool
+_pieceBelongsToRow f i t@(Turn p _) g = tile `elem` row
     where
         row  = board g !! (i - 1)
-        tile = PieceTile p pos
-_pieceBelongsToRow _ _ _ = False
+        tile = PieceTile p (f t)
 
 -- | Return whether or not the board is full, such that no tiles are empty.
 _boardIsFull :: a -> Game -> Bool

@@ -20,8 +20,15 @@ runRule (If c r)         t g = if runCondition c t g then runRule r t g else Not
 runRule (IfElse c r1 r2) t g = if runCondition c t g then runRule r1 t g else runRule r2 t g
 runRule (r1 `SEQ` r2)    t g = runRule r1 t g >>= runRule r2 t -- equal to: if isJust (runRule r1 t g) then runRule r2 t (fromJust iter1) else Nothing
 runRule (r1 `THEN` r2)   t g = case runRule r1 t g of
-                                    Just c  -> runRule r2 t c
-                                    Nothing -> runRule r2 t g
+                                    Just c  -> case runRule r2 t c of
+                                        Just c' -> Just c'
+                                        Nothing -> Just c
+                                    Nothing -> case runRule r2 t g of
+                                        Just c' -> Just c'
+                                        Nothing -> Just g
+runRule (r1 `THEN2` r2)    t g = case runRule r1 t g of
+                                    Just c -> runRule r2 t c
+                                    Nothing -> Just g
 runRule (IterateUntil r c) t g = runUntilMain c r t g
 runRule (ForAllDir ts f)   t g = runRule (iterateDir ts f (>=>)) t g
 runRule (ForEachDir ts f)  t g = runRule (iterateDir ts f (>>>)) t g

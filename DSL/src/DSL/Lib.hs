@@ -27,13 +27,15 @@ module DSL.Lib (
     doUntil,
     replaceUntil,
     skipTurn,
+    convertToPiece,
 
     -- * Conditions
     -- $condition
     trueCond,
     falseCond,
     pieceIsAtPos,
-    pieceBelongsToRow,
+    pieceOriginBelongsToRow,
+    pieceDestinationBelongsToRow,
     boardIsFull,
     changedState,
     emptyTile,
@@ -161,6 +163,9 @@ replaceUntil c = doUntil (If c placePiece)
 skipTurn :: Rule
 skipTurn = Rule $ Update _skipTurn
 
+convertToPiece :: String -> Rule
+convertToPiece s = TurnRule (Update $ _convertToPiece s) placePiece
+
 
 -- * Conditions
 {- $condition -}
@@ -177,8 +182,12 @@ falseCond = Condition (\_ _-> False)
 pieceIsAtPos :: Pos -> Condition Turn 
 pieceIsAtPos = Condition . _pieceIsAtPos
 
-pieceBelongsToRow :: Int -> Condition Turn
-pieceBelongsToRow = Condition . _pieceBelongsToRow
+pieceOriginBelongsToRow :: Int -> Condition Turn
+pieceOriginBelongsToRow = Condition . _pieceOriginBelongsToRow
+
+pieceDestinationBelongsToRow :: Int -> Condition Turn
+pieceDestinationBelongsToRow = Condition . _pieceDestinationBelongsToRow
+
 
 -- | Checks if the board is full
 boardIsFull :: Condition a

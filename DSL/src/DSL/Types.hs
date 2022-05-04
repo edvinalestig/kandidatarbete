@@ -7,6 +7,7 @@ module DSL.Types (
     Game (..),
     (>=>),
     (>>>),
+    (>|>),
     Rule (..),
     Update (..),
     Condition (..),
@@ -57,9 +58,14 @@ data Update t = Update (Turn -> t -> t)         -- ^ Represent an update to a ty
 (>=>) = SEQ
 
 -- | Runs two 'Rule' sequentially, 
--- if a 'Rule' fail to apply the last successful one is used instead.
+-- if a 'Rule' fails to apply the last successful one is used instead.
 (>>>) :: Rule -> Rule -> Rule
 (>>>) = THEN
+
+-- | Runs two 'Rule' sequantially,
+-- if a 'Rule' fails to apply, the previous rule is returned.
+(>|>) :: Rule -> Rule -> Rule
+(>|>) = THEN2
 
 -- | Rule
 data Rule  
@@ -74,10 +80,12 @@ data Rule
         -- | Runs two 'Rule' sequentially, if any of 
         --   them fail the resulting rule is ignored
     | Rule `SEQ`   Rule                  
-        -- | Runs two 'Rule' sequentially, if a 'Rule'
-        --   fails it continues with the previous 
-        --   successful value
-    | Rule `THEN`  Rule                  
+        -- | Runs two 'Rule' sequentially, 
+        --   if a 'Rule' fails to apply the last successful one is used instead.
+    | Rule `THEN`  Rule     
+        -- | Runs two 'Rule' sequantially,
+        --   if a 'Rule' fails to apply, the previous rule is returned.
+    | Rule `THEN2` Rule
         -- | Run a 'Rule' until the end condition is met.
         --   If the rule fails before the end condition
         --   is met the result is ignored

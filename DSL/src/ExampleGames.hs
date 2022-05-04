@@ -184,13 +184,13 @@ chess = game {
             IfElse (pieceEqualTo "p") 
                 (If ((destinationIsRelativeTo (0,-1) `AND` emptyDestination) `OR`
                     ((destinationIsRelativeTo (1,-1) `OR` destinationIsRelativeTo (-1,-1)) `AND` enemyDestination)
-                        `OR` (pieceBelongsToRow 7 `AND` destinationIsRelativeTo (0,-2) `AND` emptyDestination))
-                            movePiece)
+                        `OR` (pieceOriginBelongsToRow 7 `AND` destinationIsRelativeTo (0,-2) `AND` emptyDestination))
+                            (movePiece >>> If (pieceDestinationBelongsToRow 1) (convertToPiece "q")))
             (If (pieceEqualTo "P") $
                 If ((destinationIsRelativeTo (0,1) `AND` emptyDestination) `OR`
                     ((destinationIsRelativeTo (1,1) `OR` destinationIsRelativeTo (-1,1)) `AND` enemyDestination)
-                        `OR` (pieceBelongsToRow 2 `AND` destinationIsRelativeTo (0,2) `AND` emptyDestination)) $
-                            movePiece)
+                        `OR` (pieceOriginBelongsToRow 2 `AND` destinationIsRelativeTo (0,2) `AND` emptyDestination))
+                            (movePiece >>> If (pieceDestinationBelongsToRow 8) (convertToPiece "Q")))
     ],
     endConditions = [
         If (pieceNotOnBoard "k" `OR` pieceNotOnBoard "K") currentPlayerWins
