@@ -27,7 +27,9 @@ runRule (r1 `THEN` r2)   t g = case runRule r1 t g of
                                         Just c' -> Just c'
                                         Nothing -> Just g
 runRule (r1 `THEN2` r2)    t g = case runRule r1 t g of
-                                    Just c -> runRule r2 t c
+                                    Just c -> case runRule r2 t c of
+                                        Just c' -> Just c'
+                                        Nothing -> Just c
                                     Nothing -> Just g
 runRule (IterateUntil r c) t g = runUntilMain c r t g
 runRule (ForAllDir ts f)   t g = runRule (iterateDir ts f (>=>)) t g
