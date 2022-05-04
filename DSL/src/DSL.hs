@@ -20,7 +20,7 @@ import DSL.Internal ( isValidInput, filterPieces )
 import Data.List.Split ( splitOn )
 import Text.Read ( readMaybe )
 import Control.Monad ( when )
-import Data.Maybe ( isJust, fromMaybe, catMaybes )
+import Data.Maybe ( fromMaybe, catMaybes )
 
 -- | Plays a game
 playGame :: Game -> IO ()
@@ -73,8 +73,6 @@ checkInterupt s | s == "q" = error "Game interrupted"
 -- | Gets an input from the user and determines whether or not it is valid
 getValidInput :: Game -> IO Action
 getValidInput g = do
-    let r = rules g
-        b = board g
     putStrLn "Enter your action (Either 'place x,y' or 'move x1,y1 x2,y2')"
     input <- getLine
 
@@ -97,7 +95,7 @@ getValidInput g = do
                     getValidInput g
     case action of
         Move pos _ -> if empty' $ getTile (board g) pos then getValidInput g else return action
-        Place pos -> return action 
+        Place _ -> return action 
 
 getInputPiece :: Game -> Action -> IO Piece
 getInputPiece g input = case input of

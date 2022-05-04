@@ -2,8 +2,6 @@ module ExampleGames where
 
 import DSL.Types
 import DSL.Lib
-import DSL.Utility
-import DSL
 
 -- tic-tac-toe
 tictactoe :: Game
@@ -131,6 +129,7 @@ othello = game {
     ]
 }
 
+othelloRule :: Rule
 othelloRule = ForEachDir allDirections (replaceUntil enemyTile allyTile)
 
 

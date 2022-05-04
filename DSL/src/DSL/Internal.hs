@@ -59,9 +59,7 @@ module DSL.Internal (
 import DSL.Types
 import DSL.Utility
 import Data.List
-import Data.Ord
-import Data.Function
-import Data.Maybe (Maybe(Nothing), fromMaybe, fromJust, isJust)
+import Data.Maybe (isJust)
 import DSL.Run (runRule)
 
 
@@ -71,16 +69,16 @@ import DSL.Run (runRule)
 
 -- | Places a piece in a certain position on the board
 _placePiece :: Turn -> Game -> Game
-_placePiece t@(Turn p (Place _)) g = replacePiece tile g
+_placePiece t@(Turn p (Place _)) = replacePiece tile
     where tile = PieceTile p $ origin t
-_placePiece _ g = g
+_placePiece _ = id
 
 -- | Moves a pieces to a absolute position on the board
 _movePiece :: Turn -> Game -> Game
-_movePiece t@(Turn p (Move pos1 pos2)) g = replacePiece tile1 $ replacePiece tile2 g
+_movePiece (Turn p (Move pos1 pos2)) = replacePiece tile1 . replacePiece tile2
     where tile1 = Empty pos1
           tile2 = PieceTile p pos2
-_movePiece (Turn _ (Place _)) g = g
+_movePiece _ = id
 
 -- | Places a tile in a certain position on the board
 replacePiece :: Tile -> Game -> Game
@@ -106,17 +104,16 @@ _playerWithMostPiecesWins _ = updateWinner playerWithMostPieces
 
 -- | Checks if the Turn Piece is at a certain position, only relevant for moving pieces
 _pieceIsAtPos :: Pos -> Turn -> Game -> Bool
-_pieceIsAtPos pos t@(Turn p (Move pos1 pos2)) g = pos1 == pos
+_pieceIsAtPos pos' (Turn _ (Move pos _)) _ = pos == pos'
 _pieceIsAtPos _ _ _ = False
 
 
 _pieceBelongsToRow :: Int -> Turn -> Game -> Bool
-_pieceBelongsToRow i (Turn p (Move pos1 pos2)) g = tile `elem` row
+_pieceBelongsToRow i (Turn p (Move pos _)) g = tile `elem` row
     where
         row  = board g !! (i - 1)
-        tile = PieceTile p pos1
+        tile = PieceTile p pos
 _pieceBelongsToRow _ _ _ = False
-
 
 -- | Return whether or not the board is full, such that no tiles are empty.
 _boardIsFull :: a -> Game -> Bool
@@ -150,16 +147,15 @@ _comparePlayerOnDestination f t g =
         _               -> False
 
 _pieceEqualTo :: String -> Turn -> Game -> Bool
-_pieceEqualTo s (Turn p _) g = s == s'
-    where (Piece s' _) = p
+_pieceEqualTo s (Turn (Piece s' _) _) _ = s == s'
 
 _pieceOnBoard :: String -> Turn -> Game -> Bool
 _pieceOnBoard s _ g = s `elem` strings
     where
         b = board g
         filteredBoard = filter (not . empty') $ concat b
-        pieces = [p | (PieceTile p pos) <- filteredBoard]
-        strings = [str | (Piece str player) <- pieces]
+        ps = [p | (PieceTile p _) <- filteredBoard]
+        strings = [str | (Piece str _) <- ps]
 
 -- | Return whether or not the current tile the turn is referring to is empty.
 _emptyTile :: Turn -> Game -> Bool
@@ -167,7 +163,7 @@ _emptyTile t = empty' . originTile t
 
 -- | Return whether or not the destination tile the turn is referring to is empty.
 _emptyDestination :: Turn -> Game -> Bool
-_emptyDestination t@(Turn p _) = empty' . destinationTile t
+_emptyDestination t = empty' . destinationTile t
 
 -- | Returns `True` if no player has any valid moves, `False` otherwise
 _noPlayerHasMoves :: Turn -> Game -> Bool
@@ -178,24 +174,24 @@ _playerCanPlace _ g = playerHasMoves g (head $ players g)
 
 -- | Checks if the destination is x steps up/down and y steps left/right compared to original position
 _destinationIsRelativeTo :: (Int, Int) -> Turn -> Game -> Bool
-_destinationIsRelativeTo (x,y) t g = Pos x y == destination t - origin t
+_destinationIsRelativeTo (x,y) t _ = Pos x y == destination t - origin t
 
 -- | Checks if the destination is diagonal from the original position.
 _isDiagonalMove :: Turn -> Game -> Bool
-_isDiagonalMove t g = abs x == abs y
+_isDiagonalMove t _ = abs x == abs y
     where
         (Pos x y) = origin t - destination t
 
 -- | Checks if the destination is horizontal or vertical from the original position.
 _isStraightMove :: Turn -> Game -> Bool
-_isStraightMove t g = x == 0 || y == 0
+_isStraightMove t _ = x == 0 || y == 0
     where
         (Pos x y) = origin t - destination t
 
 -- checks if all tiles between the current to new position are empty recursively.
 -- WIP
 _recursive :: (Int, Int) -> Condition Turn -> Turn -> Game -> Bool
-_recursive (dx, dy) = undefined
+_recursive (_, _) = undefined
 
 -- | Return whether or not 'k' in a row pieces, in all directions,
 -- can be found anywhere on the board.
@@ -239,33 +235,34 @@ updateWinner f g = if gameEnded g then g else g {winner = f g, gameEnded = True}
 -- | Return a 'Maybe' containing the player with most pieces on the board
 -- currently. It returns 'Nothing' if multiple 'Player' has the most pieces.
 playerWithMostPieces :: Game -> Maybe Player
-playerWithMostPieces game | length ps == 1 = Just $ head ps
-                          | otherwise      = Nothing
+playerWithMostPieces g | length ps == 1 = Just $ head ps
+                       | otherwise      = Nothing
     where
-        ps = playersWithMostPieces (players game) (board game)
+        ps = playersWithMostPieces (players g) (board g)
 
 -- | Returns a list containing all players with the most pieces on the board
 playersWithMostPieces :: [Player] -> Board -> [Player]
-playersWithMostPieces ps b = players
-         where amounts = map length $ playerPieces <$> ps <*> [b]
-               amounts' = zip ps amounts
-               players = [player | (player, n) <- amounts', n >= maximum amounts]
+playersWithMostPieces ps b = ps'
+    where amounts = map length $ playerPieces <$> ps <*> [b]
+          amounts' = zip ps amounts
+          ps' = [player | (player, n) <- amounts', n >= maximum amounts]
 
 -- | Returns a list containing all pieces on the board belonging to a player        
 playerPieces :: Player -> Board -> [Piece]
 playerPieces p b = filter (\x -> getPlayer x == p) as
     where
-        as = [pie | PieceTile pie pos <- concat b]
+        as = [pie | PieceTile pie _ <- concat b]
 
 
 
 -- | Determines if a given player has any legal moves with regards to the rules and a board state
 playerHasMoves :: Game -> Player -> Bool
-playerHasMoves g p = playerHasMoves' (filterPieces p (pieces g)) g
-    where
-        playerHasMoves' :: [Piece] -> Game -> Bool
-        playerHasMoves' []     g = False
-        playerHasMoves' (p:ps) g = pieceHasMoves p g (concat (board g)) || playerHasMoves' ps g
+playerHasMoves g p = anyPiecesHasMoves (filterPieces p (pieces g)) g
+
+-- | Determines if a any given pieces has any legal moves 
+anyPiecesHasMoves :: [Piece] -> Game -> Bool
+anyPiecesHasMoves ps g = foldr
+    (\ p -> (||) (pieceHasMoves p g (concat (board g)))) False ps
 
 -- | Determines if a given piece has any legal moves with regards to the rules and a board state
 pieceHasMoves :: Piece -> Game -> [Tile] -> Bool
@@ -280,11 +277,11 @@ pieceHasMoves p g (t:ts) | null (rules g) = False
 
 -- | Gets a list of all diagonals of a certain length on the board
 getDiagonals :: Board -> Int -> [[Tile]]
-getDiagonals b k = getDiagonals' b k ++ getDiagonals' (map reverse b) k
+getDiagonals b k = getDiagonals' b ++ getDiagonals' (map reverse b)
     where
-        getDiagonals' b k = concat [[[(b !! (y + k')) !! (x + k') | k' <- [0..k-1]]
-                            | x <- [0..length (head b) - k]]
-                            | y <- [0..length b - k]]
+        getDiagonals' b' = concat [[[(b' !! (y + k')) !! (x + k') | k' <- [0..k-1]]
+                            | x <- [0..length (head b') - k]]
+                            | y <- [0..length b' - k]]
 
 -- | Gets a list of all rows of a given length on the board
 getRows :: Board -> Int -> [[Tile]]

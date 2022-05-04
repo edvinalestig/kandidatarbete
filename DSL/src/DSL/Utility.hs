@@ -5,7 +5,6 @@ Description : A Haskell module containing various utility functions
 module DSL.Utility where
 
 import DSL.Types
-import Data.List
 
 
 -- | Current player is put last in the player list
@@ -77,7 +76,7 @@ eqTile _ _ = False
 
 -- | Checks if all tiles in a list of tiles are non-empty and contain the same `Piece`
 allEQ :: [Tile] -> Bool
-allEQ ((Empty _):as) = False
+allEQ ((Empty _):_) = False
 allEQ ((PieceTile p _):as) = all (samePiece p) as
 allEQ _      = True
 
@@ -88,9 +87,9 @@ samePiece p (PieceTile p2 _) = p == p2
 
 -- | Helper function to check if a 'Turn' results in a position within the board's boundaries.
 isWithinBoard :: Turn -> Game -> Bool
-isWithinBoard t g = isWithinBoard' (destination t) g && isWithinBoard' (origin t) g
+isWithinBoard t g = isWithinBoard' (destination t) && isWithinBoard' (origin t)
     where
-        isWithinBoard' (Pos x y) g = x >= 0 && x < (length . head . board) g && y >= 0 && y < (length . board) g
+        isWithinBoard' (Pos x y) = x >= 0 && x < (length . head . board) g && y >= 0 && y < (length . board) g
 
 -- | Checks if the input pos' coords both are zero
 zeroPos :: Pos -> Bool

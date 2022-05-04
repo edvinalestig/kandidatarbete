@@ -5,8 +5,6 @@ module DSL.Run (
 ) where
 import DSL.Types
 import DSL.Utility (isWithinBoard)
-import Control.Monad.Loops
-import Data.Maybe
 
 
 -- | Run function for the data type 'Update'
@@ -36,10 +34,10 @@ iterateDir (t:ts) f op = f t `op` iterateDir ts f op
 -- | Uses `runUntil`, if the result is Left then that result of `runUntil` is returned.
 -- If the result is Right then the input `Game` is returned.
 runUntilMain :: Condition Turn -> Rule -> Turn -> Game -> Maybe Game
-runUntilMain c r@(TurnRule u r') t g = case runUntil c r t g of
+runUntilMain c r@(TurnRule _ _) t g = case runUntil c r t g of
                                         Left a -> Just a
-                                        Right a -> Just g
-runUntilMain _ _ _ g = error "runUntilMain: Cannot have an IterateUntil without TurnRule"
+                                        Right _ -> Just g
+runUntilMain _ _ _ _ = error "runUntilMain: Cannot have an IterateUntil without TurnRule"
 
 -- | Run a rule until until the end condition is met.
 -- If the 'Condition' is met, the program is successful and returns 'Left'.
@@ -55,7 +53,7 @@ runUntil c r@(TurnRule u r') t g =
         Left g
     where
         t' = runUpdate u t t
-runUntil _ _ _ g = error "Cannot have an IterateUntil without TurnRule"
+runUntil _ _ _ _ = error "Cannot have an IterateUntil without TurnRule"
 
 -- | Run function for the data type 'Condition'
 runCondition :: Condition Turn -> Turn -> Game -> Bool

@@ -80,11 +80,6 @@ module DSL.Lib (
 
 import DSL.Types
 import DSL.Utility
-import Data.List
-import Data.Ord
-import Data.Function
-import Data.Maybe (Maybe(Nothing), fromMaybe, fromJust, isJust)
-import DSL.Run (runRule)
 import DSL.Internal
 
 
@@ -342,20 +337,15 @@ turnDownRight = turnDown `COMBINE` turnRight
 
 -- | Prints a board in the terminal. It's pretty.
 prettyPrint :: Game -> IO ()
-prettyPrint game = do
-    let b = board game
+prettyPrint g = do
+    let b = board g
         n = length . show $ length b
     putStr   $ '\n' : replicate (n+1) ' '
-    putStrLn $ foldl (\s t -> s ++ show t ++ replicate (max 1 (n - (length $ show t))) ' ' ++ "| ") 
+    putStrLn $ foldl (\s t -> s ++ show t ++ replicate (max 1 (n - length (show t))) ' ' ++ "| ") 
                      "| " $ map (`mod` 10) [1..(length (head b))] -- mod 10 because of width limit
     putStrLn $ replicate (2 + n + 4 * length (head b)) '-'
-    prettyPrint' n [1..] $ map (map f) b
-
+    prettyPrint' n [1..] $ map (map show) b
     where
-        f :: Tile -> String
-        f t = case t of
-            Empty _ -> " "
-            s       -> show s
 
         prettyPrint' :: Int -> [Int] -> [[String]] -> IO ()
         prettyPrint' _ _ [] = return ()
@@ -365,3 +355,4 @@ prettyPrint game = do
             putStrLn $ foldl (\s t -> s ++ t ++ " | ") "| " b
             putStrLn $ replicate (2 + n + 4 * length b) '-'
             prettyPrint' n is bs
+        prettyPrint' _ [] _ = error "Congrats, you've emptied an infinite list"

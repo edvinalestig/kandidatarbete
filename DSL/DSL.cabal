@@ -36,6 +36,7 @@ library
       Paths_DSL
   hs-source-dirs:
       src
+  ghc-options: -Wall -Werror
   build-depends:
       MonadRandom
     , QuickCheck

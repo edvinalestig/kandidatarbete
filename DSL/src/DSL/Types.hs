@@ -40,11 +40,8 @@ data Game = Game
 
 -- | Represent the input a user can provide,
 -- what piece they act on and what they'll do with it
-data Turn = Turn
-    {
-        piece  :: Piece,
-        action :: Action
-    } deriving Show
+data Turn = Turn Piece Action
+    deriving Show
 
 -- | Represent a move that a piece can make
 data Action = Place Pos | Move Pos Pos deriving (Show)
