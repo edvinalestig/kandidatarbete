@@ -170,20 +170,6 @@ chess = game {
         ((7,1), Piece "H" (Player "Black")),
         ((8,1), Piece "R" (Player "Black"))
     ],
-    pieces = [
-        Piece "P" (Player "Black"),       
-        Piece "R" (Player "Black"),
-        Piece "H" (Player "Black"),
-        Piece "B" (Player "Black"),
-        Piece "Q" (Player "Black"),
-        Piece "K" (Player "Black"),
-        Piece "p" (Player "White"),
-        Piece "r" (Player "White"),
-        Piece "h" (Player "White"),
-        Piece "b" (Player "White"),
-        Piece "q" (Player "White"),
-        Piece "k" (Player "White")
-    ],
     players = [
         Player "White",
         Player "Black"
