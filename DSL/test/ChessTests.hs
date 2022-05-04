@@ -10,8 +10,8 @@ import Data.Maybe (isNothing)
 prop_chessOtherKingDeadLeadsToWin :: Property
 prop_chessOtherKingDeadLeadsToWin = do
     let g1 = chess { board = parseBoard [
-            [_r, _h, _b, _q, mm, _b, _h, _r],
-            [_p, _p, _p, _p, _p, _p, _p, _p],
+            [_r, _h, _b, _q, _k, _b, _h, _r],
+            [_p, _p, _p, _p, wq, _p, _p, _p],
             [mm, mm, mm, mm, mm, mm, mm, mm],
             [mm, mm, mm, mm, mm, mm, mm, mm],
             [mm, mm, mm, mm, mm, mm, mm, mm],
@@ -20,7 +20,8 @@ prop_chessOtherKingDeadLeadsToWin = do
             [wr, wh, wb, wq, wk, wb, wh, wr]
         ]
     }
-    gameEnded g1 === True .&&. winner g1 === Just (Player "White")
+    let g2 = playTurn' wq (Pos 4 1) (Pos 4 0) g1
+    gameEnded g2 === True .&&. winner g2 === Just (Player "White")
 
 
 
@@ -35,11 +36,11 @@ prop_chessQueenMove = do
             [mm, wk, wb, wh, wr]
         ]
     }
-    let g2 = playTurn' wq (Pos 3 3) (Pos 1 4) g1
-    let g3 = playTurn' wq (Pos 3 3) (Pos 1 1) g1
-    let g4 = playTurn' wq (Pos 3 3) (Pos 1 5) g1
-    let g5 = playTurn' wq (Pos 3 3) (Pos 3 1) g1
-    let g6 = playTurn' wq (Pos 3 3) (Pos 5 3) g1
+    let g2 = playTurn' wq (Pos 2 2) (Pos 0 3) g1
+    let g3 = playTurn' wq (Pos 2 2) (Pos 0 0) g1
+    let g4 = playTurn' wq (Pos 2 2) (Pos 0 4) g1
+    let g5 = playTurn' wq (Pos 2 2) (Pos 2 0) g1
+    let g6 = playTurn' wq (Pos 2 2) (Pos 4 2) g1
     
     let e3 = parseBoard [
                 [wq, _k, mm, _h, _r],
@@ -111,18 +112,18 @@ prop_chessPawnMove = do
                 [wp, mm, wp, wp],
                 [wk, wb, wh, wr]
             ]
-    let g3 = playTurn' wp (Pos 4 7) (Pos 3 6) g1
-        g4 = playTurn' wp (Pos 2 7) (Pos 3 6) g1
-        g5 = playTurn' wp (Pos 2 7) (Pos 2 5) g1
-        g6 = playTurn' wp (Pos 2 7) (Pos 2 4) g1
+    let g3 = playTurn' wp (Pos 3 6) (Pos 2 5) g1
+        g4 = playTurn' wp (Pos 1 6) (Pos 2 5) g1
+        g5 = playTurn' wp (Pos 1 6) (Pos 1 4) g1
+        g6 = playTurn' wp (Pos 1 6) (Pos 1 5) g1
         -- the following should fail
-        g7 = playTurn' wp (Pos 1 7) (Pos 1 5) g1
-        g8 = playTurn' wp (Pos 3 7) (Pos 3 5) g1
-        g9 = playTurn' wp (Pos 3 7) (Pos 3 6) g1
-        g10 = playTurn' wp (Pos 1 3) (Pos 1 1) g1
-        g11 = playTurn' wp (Pos 3 2) (Pos 4 1) g1
-        g12 = playTurn' wp (Pos 3 2) (Pos 2 1) g1
-        g13 = playTurn' wp (Pos 3 2) (Pos 3 3) g1
+        g7 = playTurn' wp (Pos 0 6) (Pos 0 4) g1
+        g8 = playTurn' wp (Pos 2 6) (Pos 2 4) g1
+        g9 = playTurn' wp (Pos 2 6) (Pos 2 5) g1
+        g10 = playTurn' wp (Pos 0 2) (Pos 0 0) g1
+        g11 = playTurn' wp (Pos 2 1) (Pos 3 0) g1
+        g12 = playTurn' wp (Pos 2 1) (Pos 1 0) g1
+        g13 = playTurn' wp (Pos 2 1) (Pos 2 2) g1
     e3 === board g3  .&&. e4 === board g4  .&&. e5 === board g5 .&&. e6 === board g6 
               .&&. board g1 === board g7  .&&. board g1 === board g8  .&&. board g1 === board g9 .&&. board g1 === board g10
               .&&. board g1 === board g11 .&&. board g1 === board g12 .&&. board g1 === board g13
@@ -160,8 +161,8 @@ prop_chessPawnPromotion = do
                 [wp, wp, mm, wp],
                 [wk, wb, _q, wr]
             ]
-    let g2 = playTurn' wp (Pos 3 2) (Pos 3 1) g1
-        g3 = playTurn' wp (Pos 3 7) (Pos 3 8) g2
+    let g2 = playTurn' wp (Pos 2 1) (Pos 2 0) g1
+        g3 = playTurn' wp (Pos 2 6) (Pos 2 7) g2
 
     board g2 === e2 .&&. board g3 === e3
 
