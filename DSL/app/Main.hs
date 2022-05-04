@@ -18,7 +18,7 @@ main = do
     case gameId of
         1 -> playGame chess
         2 -> playGame connectFour
-        3 -> playGame (tictactoeVariant 7 7 4)
+        3 -> playGame (tictactoeVariant 12 10 4)
         4 -> playGame othello
         5 -> playGame tictactoe
         _ -> do putStrLn "input was not recognized"

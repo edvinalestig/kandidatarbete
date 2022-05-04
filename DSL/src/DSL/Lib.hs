@@ -344,8 +344,12 @@ turnDownRight = turnDown `COMBINE` turnRight
 prettyPrint :: Game -> IO ()
 prettyPrint game = do
     let b = board game
-    putStrLn $ replicate (1 + 4 * length (head b)) '-'
-    prettyPrint' $ map (map f) b
+        n = length . show $ length b
+    putStr   $ '\n' : replicate (n+1) ' '
+    putStrLn $ foldl (\s t -> s ++ show t ++ replicate (max 1 (n - (length $ show t))) ' ' ++ "| ") 
+                     "| " $ map (`mod` 10) [1..(length (head b))] -- mod 10 because of width limit
+    putStrLn $ replicate (2 + n + 4 * length (head b)) '-'
+    prettyPrint' n [1..] $ map (map f) b
 
     where
         f :: Tile -> String
@@ -353,9 +357,11 @@ prettyPrint game = do
             Empty _ -> " "
             s       -> show s
 
-        prettyPrint' :: [[String]] -> IO ()
-        prettyPrint' [] = return ()
-        prettyPrint' (b:bs)  = do
+        prettyPrint' :: Int -> [Int] -> [[String]] -> IO ()
+        prettyPrint' _ _ [] = return ()
+        prettyPrint' n (i:is) (b:bs)  = do
+            let i' = show i
+            putStr $ i' ++ replicate (n + 1 - length i') ' '
             putStrLn $ foldl (\s t -> s ++ t ++ " | ") "| " b
-            putStrLn $ replicate (1 + 4 * length b) '-'
-            prettyPrint' bs
+            putStrLn $ replicate (2 + n + 4 * length b) '-'
+            prettyPrint' n is bs
