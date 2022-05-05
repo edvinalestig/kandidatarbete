@@ -176,13 +176,13 @@ chess = game {
     ],
     rules = [
         If (allyTile `AND` NOT allyDestination) $
-            If (pieceEqualToEither ["H", "h"] `AND` isKnightMove) movePiece >>>
-            If (pieceEqualToEither ["k", "K"] `AND` isKingMove) movePiece >>>
-            If (pieceEqualToEither ["q", "Q"] `AND` isQueenMove) movePiece >>>
-            If (pieceEqualToEither ["b", "B"] `AND` isBishopMove) movePiece >>>
-            If (pieceEqualToEither ["r", "R"] `AND` isRookMove) movePiece >>>
-            If (pieceEqualTo "p"              `AND` isWhitePawnMove)
-                    (movePiece >|> If (pieceDestinationBelongsToRow 1) (convertToPiece "q")) >>>
+            IfElse (pieceEqualToEither ["H", "h"] `AND` isKnightMove) movePiece $
+            IfElse (pieceEqualToEither ["k", "K"] `AND` isKingMove) movePiece $
+            IfElse (pieceEqualToEither ["q", "Q"] `AND` isQueenMove) movePiece $
+            IfElse (pieceEqualToEither ["b", "B"] `AND` isBishopMove) movePiece $
+            IfElse (pieceEqualToEither ["r", "R"] `AND` isRookMove) movePiece $
+            IfElse (pieceEqualTo "p"              `AND` isWhitePawnMove)
+                    (movePiece >|> If (pieceDestinationBelongsToRow 1) (convertToPiece "q")) $
             If (pieceEqualTo "P"              `AND` isBlackPawnMove)
                     (movePiece >|> If (pieceDestinationBelongsToRow 8) (convertToPiece "Q"))
     ],
