@@ -167,7 +167,7 @@ prop_chess_pawn_canOnlyMoveForwardOnce = do
 
 prop_chess_pawn_promotion :: Property
 prop_chess_pawn_promotion = do
-    let g1 = game { board = parseBoard [
+    let g1 = chess { board = parseBoard [
             [mm, mm, mm, mm],
             [mm, mm, wp, mm],
             [wp, mm, mm, mm],
@@ -278,7 +278,7 @@ prop_chess_knight_canNotJumpToAllyTile = do
 
 prop_chess_king_moveOneStepInAnyDir :: Property
 prop_chess_king_moveOneStepInAnyDir = do
-    let g1 = game { board = parseBoard [
+    let g1 = chess { board = parseBoard [
             [mm, mm, _k, mm],
             [mm, mm, mm, _p],
             [wp, mm, wk, mm],
@@ -286,7 +286,7 @@ prop_chess_king_moveOneStepInAnyDir = do
         ] }
     let g2 = playTurn' wk (Pos 2 2) (Pos 3 3) g1
         g3 = playTurn' wk (Pos 2 2) (Pos 3 1) g1
-        g4 = playTurn' wk (Pos 2 2) (Pos 2 3) g1
+        g4 = playTurn' wk (Pos 2 2) (Pos 1 2) g1
         g5 = playTurn' wk (Pos 2 2) (Pos 0 0) g1
         
     let e3 = parseBoard [

@@ -268,10 +268,12 @@ playerCanPlace = Condition _playerCanPlace
 inARow :: Int -> Condition Turn
 inARow = Condition . _inARow
 
--- | A rule for checking if the tile below another tile is empty
+-- | A condition for checking if the tile below another tile is empty
 tileBelowIsNotEmpty :: Condition Turn
 tileBelowIsNotEmpty = Condition _tileBelowIsNotEmpty
 
+-- | A condition for checking if another condition applies to all tiles between
+-- the origin and destination pos 
 tilesBetweenAre :: Condition Turn -> Condition Turn
 tilesBetweenAre c = All c tilesBetweenTwoCoords
 
