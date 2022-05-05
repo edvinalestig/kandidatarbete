@@ -55,6 +55,7 @@ module DSL.Lib (
     playerCanPlace,
     inARow,
     tileBelowIsNotEmpty,
+    tilesBetweenAre,
     isKnightMove,
     isKingMove,
     isRookMove,
@@ -271,6 +272,9 @@ inARow = Condition . _inARow
 tileBelowIsNotEmpty :: Condition Turn
 tileBelowIsNotEmpty = Condition _tileBelowIsNotEmpty
 
+tilesBetweenAre :: Condition Turn -> Condition Turn
+tilesBetweenAre c = All c tilesBetweenTwoCoords
+
 -- | A condition for determining if the turn is a knight move in the game chess.
 --   Note that this condition is not exclusive to the game chess, but is just a name for the condition
 isKnightMove :: Condition Turn
@@ -288,12 +292,12 @@ isKingMove = foldl OR falseCond
 -- | A condition for determining if the turn is a rook move in the game chess.
 --   Note that this condition is not exclusive to the game chess, but is just a name for the condition
 isRookMove :: Condition Turn
-isRookMove = isStraightMove `AND` (All emptyTile tilesBetweenTwoCoords)
+isRookMove = isStraightMove `AND` tilesBetweenAre emptyTile
 
 -- | A condition for determining if the turn is a bishop move in the game chess.
 --   Note that this condition is not exclusive to the game chess, but is just a name for the condition
 isBishopMove :: Condition Turn
-isBishopMove = isDiagonalMove `AND` (All emptyTile tilesBetweenTwoCoords)
+isBishopMove = isDiagonalMove `AND` tilesBetweenAre emptyTile
 
 -- | A condition for determining if the turn is a queen move in the game chess.
 --   Note that this condition is not exclusive to the game chess, but is just a name for the condition

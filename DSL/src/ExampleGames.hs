@@ -176,15 +176,15 @@ chess = game {
     ],
     rules = [
         If (allyTile `AND` NOT allyDestination) $
-            If (isKnightMove    `AND` pieceEqualToEither ["H", "h"]) movePiece >>>
-            If (isKingMove      `AND` pieceEqualToEither ["k", "K"]) movePiece >>>
-            If (isQueenMove     `AND` pieceEqualToEither ["q", "Q"]) movePiece >>>
-            If (isBishopMove    `AND` pieceEqualToEither ["b", "B"]) movePiece >>>
-            If (isRookMove      `AND` pieceEqualToEither ["r", "R"]) movePiece >>>
-            If (isWhitePawnMove `AND` pieceEqualTo "p")
-                (movePiece >|> If (pieceDestinationBelongsToRow 1) (convertToPiece "q")) >>>
-            If (isBlackPawnMove `AND` pieceEqualTo "P")
-                (movePiece >|> If (pieceDestinationBelongsToRow 8) (convertToPiece "Q"))
+            If (pieceEqualToEither ["H", "h"] `AND` isKnightMove) movePiece >>>
+            If (pieceEqualToEither ["k", "K"] `AND` isKingMove) movePiece >>>
+            If (pieceEqualToEither ["q", "Q"] `AND` isQueenMove) movePiece >>>
+            If (pieceEqualToEither ["b", "B"] `AND` isBishopMove) movePiece >>>
+            If (pieceEqualToEither ["r", "R"] `AND` isRookMove) movePiece >>>
+            If (pieceEqualTo "p"              `AND` isWhitePawnMove)
+                    (movePiece >|> If (pieceDestinationBelongsToRow 1) (convertToPiece "q")) >>>
+            If (pieceEqualTo "P"              `AND` isBlackPawnMove)
+                    (movePiece >|> If (pieceDestinationBelongsToRow 8) (convertToPiece "Q"))
     ],
     endConditions = [
         If (pieceNotOnBoard "k" `OR` pieceNotOnBoard "K") currentPlayerWins
@@ -193,7 +193,7 @@ chess = game {
 
 isWhitePawnMove = (destinationIsRelativeTo (0,-1) `AND` emptyDestination) 
              `OR` ((destinationIsRelativeTo (1,-1) `OR` destinationIsRelativeTo (-1,-1)) `AND` enemyDestination)
-             `OR` (pieceOriginBelongsToRow 7 `AND` destinationIsRelativeTo (0,-2) `AND` emptyDestination)
+             `OR` (pieceOriginBelongsToRow 7 `AND` destinationIsRelativeTo (0,-2) `AND` emptyDestination `AND` tilesBetweenAre emptyTile)
 isBlackPawnMove = (destinationIsRelativeTo (0,1) `AND` emptyDestination)
              `OR` ((destinationIsRelativeTo (1,1) `OR` destinationIsRelativeTo (-1,1)) `AND` enemyDestination)
-             `OR` (pieceOriginBelongsToRow 2 `AND` destinationIsRelativeTo (0,2) `AND` emptyDestination)
+             `OR` (pieceOriginBelongsToRow 2 `AND` destinationIsRelativeTo (0,2) `AND` emptyDestination `AND` tilesBetweenAre emptyTile)
