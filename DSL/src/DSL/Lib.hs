@@ -160,9 +160,11 @@ doUntil r c f = IterateUntil (TurnRule f r) c
 replaceUntil :: Condition Turn -> Condition Turn -> Update Turn -> Rule
 replaceUntil c = doUntil (If c placePiece)
 
+-- --------------
 skipTurn :: Rule
 skipTurn = Rule $ Update _skipTurn
 
+-- ---------------
 convertToPiece :: String -> Rule
 convertToPiece s = TurnRule (Update $ _convertToPiece s) placePiece
 
@@ -179,12 +181,15 @@ trueCond = Condition (\_ _ -> True)
 falseCond :: Condition Turn
 falseCond = Condition (\_ _-> False)
 
+-- ------------
 pieceIsAtPos :: Pos -> Condition Turn 
 pieceIsAtPos = Condition . _pieceIsAtPos
 
+-- ------------
 pieceOriginBelongsToRow :: Int -> Condition Turn
 pieceOriginBelongsToRow = Condition . _pieceOriginBelongsToRow
 
+-- ---------------
 pieceDestinationBelongsToRow :: Int -> Condition Turn
 pieceDestinationBelongsToRow = Condition . _pieceDestinationBelongsToRow
 
@@ -233,9 +238,11 @@ enemyDestination = Condition (_comparePlayerOnDestination (/=)) `AND` NOT emptyD
 destinationIsRelativeTo :: (Int, Int) -> Condition Turn
 destinationIsRelativeTo = Condition . _destinationIsRelativeTo
 
+-- -------------
 isDiagonalMove :: Condition Turn
 isDiagonalMove = Condition _isDiagonalMove
 
+-- -------------
 isStraightMove :: Condition Turn
 isStraightMove = Condition _isStraightMove
 
@@ -251,6 +258,7 @@ pieceNotOnBoard = NOT . pieceOnBoard
 noPlayerHasMoves :: Condition Turn
 noPlayerHasMoves = Condition _noPlayerHasMoves
 
+-- -----------
 playerCanPlace :: Condition Turn
 playerCanPlace = Condition _playerCanPlace
 

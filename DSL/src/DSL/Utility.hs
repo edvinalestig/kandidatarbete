@@ -14,6 +14,7 @@ cyclePlayers = tail <> take 1 -- MONOID (Semigroup)! :D
 
 -- * Turn
 
+-- -----------
 nullTurn :: Turn
 nullTurn = Turn nullPiece (Move nullPos nullPos)
 
@@ -136,7 +137,7 @@ getPiece b pos = case getTile b pos of
                     Empty _ -> error "tried to check for a piece on an Empty tile. (this should never occur)"
                     PieceTile p _ -> p
 
-
+-- ------------
 getPiece' :: Board -> Pos -> Maybe Piece
 getPiece' b pos = case getTile b pos of
                     Empty _ -> Nothing

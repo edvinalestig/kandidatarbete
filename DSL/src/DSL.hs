@@ -97,21 +97,25 @@ getValidInput g = do
         Move pos _ -> if empty' $ getTile (board g) pos then getValidInput g else return action
         Place _ -> return action 
 
+-- -------------
 getInputPiece :: Game -> Action -> IO Piece
 getInputPiece g input = case input of
                     Move pos _ -> return $ getPiece (board g) pos
                     Place _ -> getValidPiece (head $ players g) (pieces g)
 
 
+-- -----------
 handlePlace :: [String] -> Action
 handlePlace input = Place $ Pos (x-1) (y-1)
     where [x,y] = getCoordsFromInput $ head input
 
+-- --------
 handleMove :: [String] -> Action
 handleMove input = Move (Pos (x1-1) (y1-1)) (Pos (x2-1) (y2-1))
     where [x1,y1] = getCoordsFromInput $ head input
           [x2,y2] = getCoordsFromInput $ head (tail input)
 
+-- ----------
 getCoordsFromInput :: String -> [Int]
 getCoordsFromInput s = catMaybes (map readMaybe $ splitOn "," s :: [Maybe Int])
 

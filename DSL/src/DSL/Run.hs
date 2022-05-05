@@ -35,6 +35,7 @@ runRule (IterateUntil r c) t g = runUntilMain c r t g
 runRule (ForAllDir ts f)   t g = runRule (iterateDir ts f (>=>)) t g
 runRule (ForEachDir ts f)  t g = runRule (iterateDir ts f (>>>)) t g
 
+-- --------------
 iterateDir :: [Update Turn] -> (Update Turn -> Rule) -> (Rule -> Rule -> Rule) -> Rule
 iterateDir []     _ _  = error "no input is found"
 iterateDir [t]    f _  = f t

@@ -168,7 +168,7 @@ prop_chessPawnPromotion = do
 
 
 
--- | A fake piece used for creating othello boards with empty pieces in.
+-- | A fake piece used for creating chess boards with empty pieces in.
 --   Only used to more easily create testing scenarios.
 --   Use together with `o` and `x` in a matrix and call `parseBoard` to convert it to a `Board`.
 mm :: Piece

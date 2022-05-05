@@ -100,6 +100,7 @@ _currentPlayerWins _ = updateWinner $ Just . head . players
 _playerWithMostPiecesWins :: Turn -> Game -> Game
 _playerWithMostPiecesWins _ = updateWinner playerWithMostPieces
 
+-- | Changes the tile at the second position in a turn of type move to a given piece.
 _convertToPiece :: String -> Turn -> Turn -> Turn
 _convertToPiece s (Turn (Piece _ player) (Move _ pos2)) _ = placeTurn' (Piece s player) pos2
 _convertToPiece _ _ _ = error "undefined"
@@ -121,6 +122,7 @@ _pieceOriginBelongsToRow = _pieceBelongsToRow origin
 _pieceDestinationBelongsToRow :: Int -> Turn -> Game -> Bool
 _pieceDestinationBelongsToRow = _pieceBelongsToRow destination
 
+-- | Return whether the piece that is requested to be moved is located at a given row.
 _pieceBelongsToRow :: (Turn -> Pos) -> Int -> Turn -> Game -> Bool
 _pieceBelongsToRow f i t@(Turn p _) g = tile `elem` row
     where
@@ -152,15 +154,19 @@ _comparePlayerOnTile f t g =
         (PieceTile p' _) -> getPlayer p' `f` head (players g)
         _               -> False
 
+-- | Return whether the piece at the destination of a turn of type move 
+-- belongs to the current player.
 _comparePlayerOnDestination :: (Player -> Player -> Bool) -> Turn -> Game -> Bool
 _comparePlayerOnDestination f t g =
     case destinationTile t g of
         (PieceTile p' _) -> getPlayer p' `f` head (players g)
         _               -> False
 
+-- | Returns whether the piece relating to a turn is the same as a given piece.
 _pieceEqualTo :: String -> Turn -> Game -> Bool
 _pieceEqualTo s (Turn (Piece s' _) _) _ = s == s'
 
+-- | Returns whether a given piece exists in a boardstate
 _pieceOnBoard :: String -> Turn -> Game -> Bool
 _pieceOnBoard s _ g = s `elem` strings
     where
@@ -181,6 +187,7 @@ _emptyDestination t = empty' . destinationTile t
 _noPlayerHasMoves :: Turn -> Game -> Bool
 _noPlayerHasMoves _ g = not $ any (playerHasMoves g) (players g)
 
+-- | Returns whether the current player can place a tile anywhere on the board.
 _playerCanPlace :: Turn -> Game -> Bool
 _playerCanPlace _ g = playerHasMoves g (head $ players g)
 
@@ -225,6 +232,7 @@ _tileBelowIsNotEmpty t@(Turn p _) g =
 -- * Updates
 {- $update -}
 
+-- Returns a gamestate with the turn passed to the next player in the order.
 _skipTurn :: Turn -> Game -> Game
 _skipTurn _ g = g {players = cyclePlayers $ players g}
 
@@ -236,7 +244,7 @@ _turnDirection (dx, dy) (Turn p _) = combineTurn $ placeTurn p dx dy
 -- * Helper functions
 {- helper -}
 
-
+-- Returns 'Nothing', indicating a drawn gamestate.
 drawGame :: Game -> Maybe a
 drawGame _ = Nothing
 
