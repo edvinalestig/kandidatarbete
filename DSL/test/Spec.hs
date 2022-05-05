@@ -9,6 +9,7 @@ import DSL
 import ExampleGames
 import TicTacToeTests
 import OthelloTests
+import ChessTests
 
 
 main :: IO ()
@@ -51,6 +52,36 @@ main = hspec $ do
             prop_othello_drawOnEqualNumberOfPieces  
         prop "verify that an invalid move does not change the game state" 
             prop_othello_invalidMoveChangesNothing
+    describe "Chess" $ 
+        describe "Verifies various functionality for the game" $ do
+        context "Piece: Pawn" $ do
+            prop "verify that it can only take pieces diagonally" 
+                prop_chess_pawn_takeEnemyDiagonally
+            prop "verify that it can move twice the first time it moves" 
+                prop_chess_pawn_moveTwiceFirstTime
+            prop "verify that it can not cross another piece"
+                prop_chess_pawn_invalidJumpingOverPiece 
+            prop "verify that it can be promoted to a queen"
+                prop_chess_pawn_promotion
+            prop "verify that it can only move forward once, except the first time it moves"
+                prop_chess_pawn_canOnlyMoveForwardOnce
+        context "Piece: Queen" $ do
+            prop "verify that it can take enemy pieces, diagonally and straight"
+                prop_chess_queen_takeEnemyPiece
+            prop "verify that it can not move over other pieces"
+                prop_chess_queen_canNotJumpOverPieces
+        context "Piece: Knight" $ do
+            prop "verify that it can only move in an L shape"
+                prop_chess_knight_canOnlyMoveInLShape
+            prop "verify that it can move over other pieces"
+                prop_chess_knight_canJumpOverPieces
+            prop "verify that it can move to either an empty piece or enemy tile"
+                prop_chess_knight_canNotJumpToAllyTile
+        context "Piece King" $ do
+            prop "verify that it can only move one step in any direction"
+                prop_chess_king_moveOneStepInAnyDir
+            prop "verify that if it dies, the player loses"
+                prop_chess_king_otherKingDeadLeadsToWin
 
 
 -- | Verify that the board is a rectangle and of correct width and height
