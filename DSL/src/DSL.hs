@@ -27,29 +27,37 @@ playGame :: Game -> IO ()
 playGame g = do
     dispFunction g g
 
-    let g' = applyRules nullTurn g preTurnRules
-    when (g /= g') (playGame g')
+    let g' = postPlayTurn nullTurn g
 
-    let currPlayer = head $ players g
-    putStrLn $ "Player " ++ show currPlayer ++ "'s turn"
-
-    input <- getValidInput g
-    piece <- getInputPiece g input
-
-    let newGame = playTurn (Turn piece input) g
-
-    -- Check if nothing happened on the board to give feedback to the user
-    if g == newGame then 
-        putStrLn "Input move does not follow the rules" >>
-        playGame newGame
-
-    else if gameEnded newGame then
-        dispFunction g newGame >>
-        case winner newGame of
+    -- check if the gamestate is already in an ended state as the turn starts
+    if gameEnded g' then
+        case winner g' of
             Nothing -> putStrLn "Draw!"
             Just p -> putStrLn $ "Player " ++ show p ++ " has won!"
-    else
-        playGame newGame
+    else do
+        let g'' = applyRules nullTurn g preTurnRules
+        when (g /= g'') (playGame g'')
+
+        let currPlayer = head $ players g
+        putStrLn $ "Player " ++ show currPlayer ++ "'s turn"
+
+        input <- getValidInput g
+        piece <- getInputPiece g input
+
+        let newGame = playTurn (Turn piece input) g
+
+        -- Check if nothing happened on the board to give feedback to the user
+        if g == newGame then 
+            putStrLn "Input move does not follow the rules" >>
+            playGame newGame
+
+        else if gameEnded newGame then
+            dispFunction g newGame >>
+            case winner newGame of
+                Nothing -> putStrLn "Draw!"
+                Just p -> putStrLn $ "Player " ++ show p ++ " has won!"
+        else
+            playGame newGame
 
 -- | Plays one turn and apply each rule.
 playTurn :: Turn -> Game -> Game
