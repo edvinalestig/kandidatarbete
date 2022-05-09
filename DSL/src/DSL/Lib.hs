@@ -10,7 +10,7 @@ board games and also helper functions to these rules
 module DSL.Lib (
     -- * Game
     -- $game
-    emptyGame,
+    game,
 
     -- * Boards
     -- $board
@@ -20,25 +20,47 @@ module DSL.Lib (
     -- * Rules
     -- $rule
     placePiece,
+    movePiece,
     gameDraw,
     currentPlayerWins,
     playerWithMostPiecesWins,
-    iteratorThen,
-    iteratorSEQ,
+    doUntil,
+    replaceUntil,
+    skipTurn,
+    convertToPiece,
 
     -- * Conditions
     -- $condition
     trueCond,
     falseCond,
-    isWithinBoard,
+    pieceIsAtPos,
+    pieceOriginBelongsToRow,
+    pieceDestinationBelongsToRow,
     boardIsFull,
     changedState,
+    emptyTile,
     allyTile,
     enemyTile,
-    emptyTile,
+    pieceEqualTo,
+    pieceEqualToEither,
+    emptyDestination,
+    allyDestination,
+    enemyDestination,
+    destinationIsRelativeTo,
+    isDiagonalMove,
+    isStraightMove,
+    pieceOnBoard,
+    pieceNotOnBoard,
     noPlayerHasMoves,
+    playerCanPlace,
     inARow,
     tileBelowIsNotEmpty,
+    tilesBetweenAre,
+    isKnightMove,
+    isKingMove,
+    isRookMove,
+    isBishopMove,
+    isQueenMove,
 
     -- * Updates
     -- $update
@@ -61,11 +83,6 @@ module DSL.Lib (
 
 import DSL.Types
 import DSL.Utility
-import Data.List
-import Data.Ord
-import Data.Function
-import Data.Maybe (Maybe(Nothing), fromMaybe, fromJust, isJust)
-import DSL.Run (runRule)
 import DSL.Internal
 
 
@@ -73,11 +90,12 @@ import DSL.Internal
 {- $game -}
 
 -- | An empty `Game` used to base games on
-emptyGame :: Game
-emptyGame = Game {
-    board = undefined,
+game :: Game
+game = Game {
+    board = error "No board provided, please provide a board",
     pieces = [],
     players = [],
+    preTurnRules = [],
     rules = [],
     endConditions = [],
     winner = Nothing,
@@ -94,8 +112,8 @@ rectBoard w h = [[Empty (Pos x y) | x <- [0..w-1]] | y <- [0..h-1]]
 
 -- | Creates an rectangular board with pieces in certain locations
 initRectBoard :: Int -> Int -> [((Int, Int), Piece)] -> Board
-initRectBoard w h []            = [[Empty (Pos x y) | x <- [0..w-1]] | y <- [0..h-1]]
-initRectBoard w h (((x,y), p):as) = board $ _placePiece (placeTurn p (x-1) (y-1)) $ emptyGame {board = initRectBoard w h as}
+initRectBoard w h []              = rectBoard w h
+initRectBoard w h (((x,y), p):as) = board $ _placePiece (placeTurn p (x-1) (y-1)) $ game {board = initRectBoard w h as}
 
 
 -- * Rules
@@ -104,6 +122,10 @@ initRectBoard w h (((x,y), p):as) = board $ _placePiece (placeTurn p (x-1) (y-1)
 -- | Places a piece in a certain position on the board
 placePiece :: Rule
 placePiece = Rule $ Update _placePiece
+
+-- | Move a piece to a absolute position on the board
+movePiece :: Rule
+movePiece = Rule $ Update _movePiece
 
 -- | A `Rule` for a draw
 gameDraw :: Rule
@@ -117,37 +139,63 @@ currentPlayerWins = Rule $ Update _currentPlayerWins
 playerWithMostPiecesWins :: Rule
 playerWithMostPiecesWins = Rule $ Update _playerWithMostPiecesWins
 
--- | A `Rule` that applies the lambda function to the `Game`
--- state for each `Turn` that is sent in. When a rule fails
--- the last successful result then given as a result.
-iteratorThen :: (Update Turn -> Rule) -> [Update Turn] -> Rule
-iteratorThen f [] = error "no input is found"
-iteratorThen f [t] = f t
-iteratorThen f (t:ts) = f t >>> iteratorThen f ts
+-- | Iterate a 'Rule' until a 'Condition' is met over an @'Update' 'Turn'@
+--
+-- Example usage:
+--
+-- > doUntil (If emptyTile placePiece) enemyTile
+--
+-- The example replaces the next tile, if empty, with an ally tile.
+-- If the condition fails before reaching an enemyTile, the result is ignored.
+doUntil :: Rule -> Condition Turn -> Update Turn -> Rule
+doUntil r c f = IterateUntil (TurnRule f r) c
 
--- | A `Rule` that applies the lambda function to the `Game`
--- state for each `Turn` that is sent in. If any rule fail
--- the result is ignored.
-iteratorSEQ :: (Update Turn -> Rule) -> [Update Turn] -> Rule
-iteratorSEQ f [] = error "no input is found"
-iteratorSEQ f [t] = f t
-iteratorSEQ f (t:ts) = f t >=> iteratorSEQ f ts
+-- | Replace a tile until another tile in the specified direction 
+-- 
+-- Example usage:
+--
+-- > replaceUntil enemyTile allyTile
+--
+-- The example replaces every enemyTile until the first allyTile in the specified direction.
+-- If another tile is reached before the end condition is met, the result is ignored.
+replaceUntil :: Condition Turn -> Condition Turn -> Update Turn -> Rule
+replaceUntil c = doUntil (If c placePiece)
+
+-- | Passes the turn according to the order described in the gamestate.
+skipTurn :: Rule
+skipTurn = Rule $ Update _skipTurn
+
+-- | A rule that places a specified piece at a tile specified by the turn inupt.
+convertToPiece :: String -> Rule
+convertToPiece s = TurnRule (Update $ _convertToPiece s) placePiece
 
 
 -- * Conditions
 {- $condition -}
 
+
 -- | A condition that is always 'True'
 trueCond :: Condition Turn
-trueCond = Condition (\t g -> True)
+trueCond = Condition (\_ _ -> True)
 
 -- | A condition that is always 'False'
 falseCond :: Condition Turn
-falseCond = Condition (\t g -> False)
+falseCond = Condition (\_ _-> False)
 
--- | Checks if a `Tile` is within the boundaries of the board
-isWithinBoard :: Condition Turn
-isWithinBoard = Condition _isWithinBoard
+-- | A condition which is true if a given piece is at a given location.
+pieceIsAtPos :: Pos -> Condition Turn 
+pieceIsAtPos = Condition . _pieceIsAtPos
+
+-- | A condition which is true if a piece at the first position of a move turn 
+--   exists in a given row.
+pieceOriginBelongsToRow :: Int -> Condition Turn
+pieceOriginBelongsToRow = Condition . _pieceOriginBelongsToRow
+
+-- | A condition which is true if a piece at the first position of a move turn 
+--   exists in a given row.
+pieceDestinationBelongsToRow :: Int -> Condition Turn
+pieceDestinationBelongsToRow = Condition . _pieceDestinationBelongsToRow
+
 
 -- | Checks if the board is full
 boardIsFull :: Condition a
@@ -157,35 +205,111 @@ boardIsFull = Condition _boardIsFull
 changedState :: Rule -> Condition Turn
 changedState r = Condition $ _changedState r
 
--- | A `Condition` for checking if the piece (on given tile) belongs to the current player
-allyTile :: Condition Turn
-allyTile = Condition $ _comparePieceOnTile (==)
-
--- | A `Condition` for checking if the piece (on given tile) doesn't belong to the current player
-enemyTile :: Condition Turn
-enemyTile = Condition $ _comparePieceOnTile (/=)
-
--- | A `Condition` for checking if a tile is empty
+-- | A `Condition` for checking if the current tile is empty
 emptyTile :: Condition Turn
 emptyTile = Condition _emptyTile
+
+-- | A `Condition` for checking if the piece (on given tile) belongs to the current player
+allyTile :: Condition Turn
+allyTile = Condition $ _comparePlayerOnTile (==)
+
+-- | A `Condition` for checking if the piece (on given tile) doesn't belong to the current player.
+enemyTile :: Condition Turn
+enemyTile = Condition $ _comparePlayerOnTile (/=)
+
+-- | A `Condition` for checking if a predescribed piece is equal to a given piece on the board.
+pieceEqualTo :: String -> Condition Turn
+pieceEqualTo = Condition . _pieceEqualTo
+
+-- | A `Condition` for
+pieceEqualToEither :: [String] -> Condition Turn
+pieceEqualToEither = foldl (\a b -> a `OR` pieceEqualTo b) falseCond
+
+-- | A `Condition` for checking if the destination tile is empty
+emptyDestination :: Condition Turn 
+emptyDestination = Condition _emptyDestination
+
+-- | A `Condition` for checking if the destination belongs to the player
+allyDestination :: Condition Turn
+allyDestination = Condition $ _comparePlayerOnDestination (==)
+
+-- | A `Condition` for checking if the destination belongs to the enemy
+enemyDestination :: Condition Turn
+enemyDestination = Condition (_comparePlayerOnDestination (/=)) `AND` NOT emptyDestination
+
+-- | Check if the destination tile is move relative a certain amount
+destinationIsRelativeTo :: (Int, Int) -> Condition Turn
+destinationIsRelativeTo = Condition . _destinationIsRelativeTo
+
+-- | A `Condition` for checking if a given move follows a diagonal path.
+isDiagonalMove :: Condition Turn
+isDiagonalMove = Condition _isDiagonalMove
+
+-- | A `Condition` for checking if a given move follows a straight path.
+isStraightMove :: Condition Turn
+isStraightMove = Condition _isStraightMove
+
+-- | A `Condition` for checking if the piece is on the board.
+pieceOnBoard :: String -> Condition Turn
+pieceOnBoard = Condition . _pieceOnBoard
+
+-- | A `Condition` for checking if the piece is not on the board. Inverse of `pieceOnBoard`.
+pieceNotOnBoard :: String -> Condition Turn
+pieceNotOnBoard = NOT . pieceOnBoard
 
 -- | Returns `True` if no player has any valid moves, `False` otherwise
 noPlayerHasMoves :: Condition Turn
 noPlayerHasMoves = Condition _noPlayerHasMoves
 
+-- | A `Condition` for checking if a given player can place a piece anywhere on the board.
+playerCanPlace :: Condition Turn
+playerCanPlace = Condition _playerCanPlace
+
 -- | Checks if the board contains a given number of pieces in a row in any 
 --   orientation. (Vertical, horizontal, diagonal)
 inARow :: Int -> Condition Turn
-inARow k = Condition $ _inARow k
+inARow = Condition . _inARow
 
--- | A rule for checking if the tile below another tile is empty
+-- | A condition for checking if the tile below another tile is empty
 tileBelowIsNotEmpty :: Condition Turn
 tileBelowIsNotEmpty = Condition _tileBelowIsNotEmpty
 
+-- | A condition for checking if another condition applies to all tiles between
+-- the origin and destination pos 
+tilesBetweenAre :: Condition Turn -> Condition Turn
+tilesBetweenAre c = All c tilesBetweenTwoCoords
+
+-- | A condition for determining if the turn is a knight move in the game chess.
+--   Note that this condition is not exclusive to the game chess, but is just a name for the condition
+isKnightMove :: Condition Turn
+isKnightMove = destinationIsRelativeTo (1,2) `OR` destinationIsRelativeTo (1,-2)
+    `OR` destinationIsRelativeTo (-1,2) `OR` destinationIsRelativeTo (-1,-2)
+    `OR` destinationIsRelativeTo (2,1) `OR` destinationIsRelativeTo (2,-1)
+    `OR` destinationIsRelativeTo (-2,1)`OR` destinationIsRelativeTo (-2,-1)
+
+-- | A condition for determining if the turn is a king move in the game chess.
+--   Note that this condition is not exclusive to the game chess, but is just a name for the condition
+isKingMove :: Condition Turn
+isKingMove = foldl OR falseCond
+    [destinationIsRelativeTo (i,j) | i <- [-1..1], j <- [-1..1], not (i==0 && j==0)]
+
+-- | A condition for determining if the turn is a rook move in the game chess.
+--   Note that this condition is not exclusive to the game chess, but is just a name for the condition
+isRookMove :: Condition Turn
+isRookMove = isStraightMove `AND` tilesBetweenAre emptyTile
+
+-- | A condition for determining if the turn is a bishop move in the game chess.
+--   Note that this condition is not exclusive to the game chess, but is just a name for the condition
+isBishopMove :: Condition Turn
+isBishopMove = isDiagonalMove `AND` tilesBetweenAre emptyTile
+
+-- | A condition for determining if the turn is a queen move in the game chess.
+--   Note that this condition is not exclusive to the game chess, but is just a name for the condition
+isQueenMove :: Condition Turn 
+isQueenMove = isRookMove `OR` isBishopMove
 
 -- * Updates
 {- $update -}
-
 
 -- | A list containing all directions
 allDirections :: [Update Turn]
@@ -217,19 +341,19 @@ turnDown = Update $ _turnDirection (0, 1)
 
 -- | An `Update` for moving one step up and to the left, mainly for use with `IterateUntil`
 turnUpLeft :: Update Turn
-turnUpLeft = Update $ _turnDirection (-1, -1)
+turnUpLeft = turnUp `COMBINE` turnLeft
 
 -- | An `Update` for moving one step up and to the right, mainly for use with `IterateUntil`
 turnUpRight :: Update Turn
-turnUpRight = Update $ _turnDirection (1, -1)
+turnUpRight = turnUp `COMBINE` turnRight
 
 -- | An `Update` for moving one step down and to the left, mainly for use with `IterateUntil`
 turnDownLeft :: Update Turn
-turnDownLeft = Update $ _turnDirection (-1, 1)
+turnDownLeft = turnDown `COMBINE` turnLeft
 
 -- | An `Update` for moving one step down and to the right, mainly for use with `IterateUntil`
 turnDownRight :: Update Turn
-turnDownRight = Update $ _turnDirection (1, 1)
+turnDownRight = turnDown `COMBINE` turnRight
 
 
 -- * Display functions
@@ -238,20 +362,22 @@ turnDownRight = Update $ _turnDirection (1, 1)
 
 -- | Prints a board in the terminal. It's pretty.
 prettyPrint :: Game -> IO ()
-prettyPrint game = do
-    let b = board game
-    putStrLn $ replicate (1 + 4 * length (head b)) '-'
-    prettyPrint' $ map (map f) b
-
+prettyPrint g = do
+    let b = board g
+        n = length . show $ length b
+    putStr   $ '\n' : replicate (n+1) ' '
+    putStrLn $ foldl (\s t -> s ++ show t ++ replicate (max 1 (n - length (show t))) ' ' ++ "| ") 
+                     "| " $ map (`mod` 10) [1..(length (head b))] -- mod 10 because of width limit
+    putStrLn $ replicate (2 + n + 4 * length (head b)) '-'
+    prettyPrint' n [1..] $ map (map show) b
     where
-        f :: Tile -> String
-        f t = case t of
-            Empty _ -> " "
-            s       -> show s
 
-        prettyPrint' :: [[String]] -> IO ()
-        prettyPrint' [] = return ()
-        prettyPrint' (b:bs)  = do
+        prettyPrint' :: Int -> [Int] -> [[String]] -> IO ()
+        prettyPrint' _ _ [] = return ()
+        prettyPrint' n (i:is) (b:bs)  = do
+            let i' = show i
+            putStr $ i' ++ replicate (n + 1 - length i') ' '
             putStrLn $ foldl (\s t -> s ++ t ++ " | ") "| " b
-            putStrLn $ replicate (1 + 4 * length b) '-'
-            prettyPrint' bs
+            putStrLn $ replicate (2 + n + 4 * length b) '-'
+            prettyPrint' n is bs
+        prettyPrint' _ [] _ = error "Congrats, you've emptied an infinite list"

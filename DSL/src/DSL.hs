@@ -15,35 +15,40 @@ module DSL (
 import DSL.Lib
 import DSL.Types
 import DSL.Utility
-import DSL.Run
-import DSL.Internal (isValidInput, playerHasMoves, filterPieces)
-import Data.List (transpose, group)
-import Control.Monad.Random (evalRandIO, MonadRandom (getRandomR))
-import Data.Bifunctor (Bifunctor(bimap))
-import Data.List.Split (chunksOf, splitOn)
-import Text.Read (readMaybe)
-import Data.Maybe ( isJust, fromMaybe, catMaybes )
+import DSL.Run ( runRule )
+import DSL.Internal ( isValidInput, filterPieces )
+import Data.List.Split ( splitOn )
+import Text.Read ( readMaybe )
+import Control.Monad ( when )
+import Data.Maybe ( fromMaybe, catMaybes )
 
 -- | Plays a game
 playGame :: Game -> IO ()
 playGame g = do
     dispFunction g g
 
-    let currPlayer = head $ players g
-    if not (playerHasMoves g currPlayer) then do
-        putStrLn $ "Player " ++ show currPlayer ++ "'s turn is skipped - no valid moves"
-        playGame $ g {players = cyclePlayers $ players g}
-    else do
-        putStrLn $ "Player " ++ show currPlayer ++ "'s turn"
-        piece <- getValidPiece currPlayer (pieces g)
-        input <- getValidInput piece g
+    let g' = postPlayTurn nullTurn g
 
-        let newGame = playTurn g piece input
+    -- check if the gamestate is already in an ended state as the turn starts
+    if gameEnded g' then
+        case winner g' of
+            Nothing -> putStrLn "Draw!"
+            Just p -> putStrLn $ "Player " ++ show p ++ " has won!"
+    else do
+        let g'' = applyRules nullTurn g preTurnRules
+        when (g /= g'') (playGame g'')
+
+        let currPlayer = head $ players g
+        putStrLn $ "Player " ++ show currPlayer ++ "'s turn"
+
+        input <- getValidInput g
+        piece <- getInputPiece g input
+
+        let newGame = playTurn (Turn piece input) g
 
         -- Check if nothing happened on the board to give feedback to the user
-        -- Todo: Determine if this is the way to do it, now it assumes that all moves include changes to the board
-        if board g == board newGame && players g == players newGame then 
-            putStrLn "Inputted move does not follow the rules" >>
+        if g == newGame then 
+            putStrLn "Input move does not follow the rules" >>
             playGame newGame
 
         else if gameEnded newGame then
@@ -55,12 +60,11 @@ playGame g = do
             playGame newGame
 
 -- | Plays one turn and apply each rule.
-playTurn :: Game -> Piece -> Pos -> Game
-playTurn g p pos | not $ isValidInput turn g = g
-                 | otherwise = postPlayTurn turn newGame
+playTurn :: Turn -> Game -> Game
+playTurn t g | not $ isValidInput t g = g
+             | otherwise = postPlayTurn t newGame
     where
-        newGame = applyRules turn g rules
-        turn = placeTurn' p pos
+        newGame = applyRules t g rules
 
 -- | After a turn is done, apply the end conditions and cycle the players.
 postPlayTurn :: Turn -> Game -> Game
@@ -75,25 +79,57 @@ checkInterupt s | s == "q" = error "Game interrupted"
                 | otherwise = return ()
 
 -- | Gets an input from the user and determines whether or not it is valid
-getValidInput :: Piece -> Game -> IO Pos
-getValidInput p g = do
-    let r = rules g
-        b = board g
-    putStrLn "Enter desired location (format: x,y)"
+getValidInput :: Game -> IO Action
+getValidInput g = do
+    putStrLn "Enter your action (Either 'place x,y' or 'move x1,y1 x2,y2')"
     input <- getLine
 
     checkInterupt input
 
-    let xs = catMaybes (map readMaybe $ splitOn "," input :: [Maybe Int])
-    if length xs /= 2 then
-        putStrLn "You must write exactly two integer coordinates separated by one comma" >>
-        getValidInput p g
-    else do
-        let [x, y] = xs
-        if x `notElem` [1..length $ head b] || y `notElem` [1..length b] then
-            putStrLn (show x ++ ',' : show y ++ " is not within the bounds of the board") >> 
-            getValidInput p g
-        else return $ Pos (x - 1) (y - 1)
+    let (func:coords) = splitOn " " input
+
+    action <- case func of
+            "place"  -> if length coords /= 1 then do
+                            putStrLn "Input does not follow specification"
+                            getValidInput g
+                        else
+                            return $ handlePlace coords
+            "move"  -> if length coords /= 2 then do
+                            putStrLn "Input does not follow specification"
+                            getValidInput g
+                        else
+                            return $ handleMove coords
+            _ -> do putStrLn "Input does not follow specification"
+                    getValidInput g
+    case action of
+        Move pos _ -> if empty' $ getTile (board g) pos then getValidInput g else return action
+        Place _ -> return action 
+
+-- | Returns the piece at the first position of a move turn.
+-- Presumed is that the given turn is of type move and a piece exists at the given position.
+getInputPiece :: Game -> Action -> IO Piece
+getInputPiece g input = case input of
+                    Move pos _ -> return $ getPiece (board g) pos
+                    Place _ -> getValidPiece (head $ players g) (pieces g)
+
+
+-- | Gives the Action described in the given list of strings.
+--   Presumed is that the action is of type place.
+handlePlace :: [String] -> Action
+handlePlace input = Place $ Pos (x-1) (y-1)
+    where [x,y] = getCoordsFromInput $ head input
+
+-- | Gives the Action described in the given list of strings.
+--   Presumed is that the action is of type move.
+handleMove :: [String] -> Action
+handleMove input = Move (Pos (x1-1) (y1-1)) (Pos (x2-1) (y2-1))
+    where [x1,y1] = getCoordsFromInput $ head input
+          [x2,y2] = getCoordsFromInput $ head (tail input)
+
+-- | Gives the coordinates described in the given string.
+getCoordsFromInput :: String -> [Int]
+getCoordsFromInput s = catMaybes (map readMaybe $ splitOn "," s :: [Maybe Int])
+
 
 -- | Apply a series of rules on the game and return the final result
 applyRules :: Turn -> Game -> (Game -> [Rule]) -> Game
@@ -118,9 +154,6 @@ getValidPiece player ps =
         filteredPieces = filterPieces player ps
 
 
--- | Current player is put last in the player list
-cyclePlayers :: [Player] -> [Player]
-cyclePlayers ps = tail ps ++ [head ps]
 
 
 

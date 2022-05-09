@@ -7,21 +7,22 @@ module DSL.Types (
     Game (..),
     (>=>),
     (>>>),
+    (>|>),
     Rule (..),
     Update (..),
     Condition (..),
     Turn (..),
     Action (..),
     Pos (..),
-    EndCondition (..),
     Player (..),
     Piece (..),
     Tile (..),
-    Board,
-    Die (..)
+    Board
 ) where
 
 import Test.QuickCheck
+
+
 
 -- | The main game object where all game info is contained. 
 data Game = Game
@@ -29,6 +30,7 @@ data Game = Game
         board         :: Board,
         pieces        :: [Piece],
         players       :: [Player],
+        preTurnRules  :: [Rule],
         rules         :: [Rule],
         endConditions :: [Rule],
         winner        :: Maybe Player,
@@ -39,53 +41,90 @@ data Game = Game
 
 -- | Represent the input a user can provide,
 -- what piece they act on and what they'll do with it
-data Turn = Turn
-    {
-        piece  :: Piece,
-        action :: Action
-    }
+data Turn = Turn Piece Action
+    deriving Show
 
 -- | Represent a move that a piece can make
-data Action = Place Pos | Move Pos Pos
+data Action = Place Pos | Move Pos Pos deriving (Show)
 
 -- | Update
-data Update t = Update (Turn -> t -> t)
-              | (Update t) `COMBINE` (Update t)
+data Update t = Update (Turn -> t -> t)         -- ^ Represent an update to a type `t`
+              | (Update t) `COMBINE` (Update t) -- ^ Combines two updates
 
 
--- | Sequences two rules, 
---   if one results in `Nothing` then the result will be `Nothing`
+-- | Runs two 'Rule' sequentially, 
+-- if any of them fail the resulting rule is ignored
 (>=>) :: Rule -> Rule -> Rule
 (>=>) = SEQ
 
--- | Sequences two rules,
---   if one results in `Nothing` it will take the previous `Just` and continue
+-- | Runs two 'Rule' sequentially, 
+-- if a 'Rule' fails to apply the last successful one is used instead.
 (>>>) :: Rule -> Rule -> Rule
 (>>>) = THEN
 
+-- | Runs two 'Rule' sequantially,
+-- if a 'Rule' fails to apply, the previous rule is returned.
+(>|>) :: Rule -> Rule -> Rule
+(>|>) = THEN2
+
 -- | Rule
-data Rule = Rule      (Update Game)
-          | TurnRule  (Update Turn) Rule
-          | If     (Condition Turn) Rule
-          | IfElse (Condition Turn) Rule Rule
-          | Rule `SEQ`   Rule
-          | Rule `THEN`  Rule
-          | IterateUntil Rule (Condition Turn)
+data Rule  
+        -- | Updates the game 
+    = Rule      (Update Game)            
+        -- | Runs a 'Rule' at the at the given 'Turn'
+    | TurnRule  (Update Turn) Rule       
+        -- | Runs the rule only if a condition applies
+    | If     (Condition Turn) Rule       
+        -- | A condition with two outcomes
+    | IfElse (Condition Turn) Rule Rule  
+        -- | Runs two 'Rule' sequentially, if any of 
+        --   them fail the resulting rule is ignored
+    | Rule `SEQ`   Rule                  
+        -- | Runs two 'Rule' sequentially, 
+        --   if a 'Rule' fails to apply the last successful one is used instead.
+    | Rule `THEN`  Rule     
+        -- | Runs two 'Rule' sequantially,
+        --   if a 'Rule' fails to apply, the previous rule is returned.
+    | Rule `THEN2` Rule
+        -- | Run a 'Rule' until the end condition is met.
+        --   If the rule fails before the end condition
+        --   is met the result is ignored
+    | IterateUntil Rule (Condition Turn) 
+
+        -- | For each direction, apply every 'Rule' once and return the result.
+        -- If any rule fail to apply the result is ignored.
+        --
+        -- Example use:
+        --
+        -- > forAllDir diagonalDirections (replaceUntil enemyTile allyTile)
+        --
+        -- The example replaces iterates over the diagonal directions
+        -- and replaces each enemyTile until an allyTile is met.
+    | ForAllDir [Update Turn] (Update Turn -> Rule)
+
+        -- | For each direction, apply each 'Rule' once and return the result.
+        -- If any rule fail to apply it will simply ignore that rule and continue with the next one.
+        --
+        -- Example use:
+        --
+        -- > forEachDir diagonalDirections (replaceUntil enemyTile allyTile)
+        --
+        -- The example replaces iterates over the diagonal directions
+        -- and replaces each enemyTile until an allyTile is met.
+    | ForEachDir [Update Turn] (Update Turn -> Rule)
 
 -- | Condition
-data Condition a = Condition (a -> Game -> Bool)
-                 | (Condition a) `AND` (Condition a)
-                 | (Condition a) `OR`  (Condition a)
-                 | NOT (Condition a)
+data Condition a = Condition (a -> Game -> Bool)     -- ^ Represent a simple condition
+                 | (Condition a) `AND` (Condition a) -- ^ If both conditions are 'True'
+                 | (Condition a) `OR`  (Condition a) -- ^ If either conditions are 'True'
+                 | NOT (Condition a)                 -- ^ Negates a 'Condition'
+                 | All (Condition a) (Turn -> Game -> [a])      -- ^ If a condition returns true on all element in a list
+                 | Any (Condition a) (Turn -> Game -> [a])      -- ^ If a condition returns true on any element in a list
 
 
--- | A simple vector object containing a x and a y value
+-- | A simple two-dimensional vector object containing a 'x' and a 'y' value
 data Pos = Pos Int Int
     deriving (Eq, Show)
-
--- | A record containing conditions to be met for the game to end.
---   It can have multiple functions for draws and wins. 
-type EndCondition = (Game -> Maybe Player, Rule) -- Game -> Bool
 
 -- | A player object with a name
 newtype Player = Player String
@@ -97,14 +136,12 @@ data Piece = Piece String Player
 
 -- | A tile object which can either be empty or it can contain a piece.
 --   `pos` might be removed.
-data Tile = PieceTile Piece Pos | Empty Pos
+data Tile = PieceTile Piece Pos -- ^ Used if the tile has a piece
+          | Empty Pos           -- ^ A tile with no piece on it
     deriving (Eq)
 
 -- | The board contains a list of rows of tiles. 
 type Board = [[Tile]]
-
--- | A die with a given number of sides.
-newtype Die = Die Int
 
 instance Show Player where
     show (Player p) = p
@@ -118,6 +155,14 @@ instance Show Piece where
 
 instance Num Pos where
     (Pos x y) + (Pos x' y') = Pos (x+x') (y+y')
+    (Pos x y) - (Pos x' y') = Pos (x-x') (y-y')
+    (Pos x y) * (Pos x' y') = Pos (x*x') (y*y')
+    signum (Pos x y)        = Pos (signum x) (signum y)
+    abs    (Pos x y)        = Pos (abs x) (abs y)
+    fromInteger i           = Pos (fromIntegral i) (fromIntegral i)
+
+instance Eq Game where
+    g1 == g2 = board g1 == board g2 && players g1 == players g2
 
 
 -- * Testing

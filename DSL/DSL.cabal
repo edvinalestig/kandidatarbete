@@ -31,11 +31,12 @@ library
       DSL.Run
       DSL.Types
       DSL.Utility
-      TestGames
+      ExampleGames
   other-modules:
       Paths_DSL
   hs-source-dirs:
       src
+  ghc-options: -Wall
   build-depends:
       MonadRandom
     , QuickCheck
@@ -68,6 +69,9 @@ test-suite DSL-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      ChessTests
+      OthelloTests
+      TicTacToeTests
       Paths_DSL
   hs-source-dirs:
       test
