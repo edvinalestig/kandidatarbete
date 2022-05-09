@@ -9,7 +9,7 @@ import Data.Maybe (isNothing)
 
 
 
-
+-- | tests that the queen can take enemy pieces properly.
 prop_chess_queen_takeEnemyPiece :: Property
 prop_chess_queen_takeEnemyPiece = do
     let g1 = chess { board = parseBoard [
@@ -40,6 +40,7 @@ prop_chess_queen_takeEnemyPiece = do
             ]
     board g1 === board g2 .&&. e3 === board g3 .&&. e4 === board g4
 
+-- | tests that the queen cannot jump over enemy pieces.
 prop_chess_queen_canNotJumpOverPieces :: Property
 prop_chess_queen_canNotJumpOverPieces = do
     let g1 = chess { board = parseBoard [
@@ -54,6 +55,7 @@ prop_chess_queen_canNotJumpOverPieces = do
     let g3 = playTurn' wq (Pos 2 2) (Pos 2 0) g1
     board g1 === board g2 .&&. board g1 === board g3
 
+-- | tests that pawns can take enemy pieces.
 prop_chess_pawn_takeEnemyDiagonally :: Property
 prop_chess_pawn_takeEnemyDiagonally = do
     let g1 = chess { board = parseBoard [
@@ -93,6 +95,7 @@ prop_chess_pawn_takeEnemyDiagonally = do
         g5 = playTurn' wp (Pos 2 6) (Pos 2 5) g1
     e2 === board g2  .&&. e3 === board g3 .&&. board g1 === board g4 .&&. board g1 === board g5
 
+-- | tests that pawns can move two steps on their first move.
 prop_chess_pawn_moveTwiceFirstTime :: Property
 prop_chess_pawn_moveTwiceFirstTime = do
     let g1 = chess { board = parseBoard [
@@ -130,6 +133,7 @@ prop_chess_pawn_moveTwiceFirstTime = do
         g3 = playTurn' wp (Pos 1 6) (Pos 1 5) g1
     e2 === board g2 .&&. e3 === board g3
 
+-- | tests that pawns cannot jump over enemy pieces.
 prop_chess_pawn_invalidJumpingOverPiece :: Property
 prop_chess_pawn_invalidJumpingOverPiece = do
     let g1 = chess { board = parseBoard [
@@ -145,7 +149,8 @@ prop_chess_pawn_invalidJumpingOverPiece = do
     }
     let g2 = playTurn' wp (Pos 2 6) (Pos 2 4) g1
     board g1 === board g2
-    
+
+-- | tests that pawns can only move once when it is not their first move.
 prop_chess_pawn_canOnlyMoveForwardOnce :: Property
 prop_chess_pawn_canOnlyMoveForwardOnce = do
     let g1 = chess { board = parseBoard [
@@ -165,6 +170,7 @@ prop_chess_pawn_canOnlyMoveForwardOnce = do
         g5 = playTurn' wp (Pos 2 1) (Pos 2 2) g1
     board g1 === board g2 .&&. board g1 === board g3 .&&. board g1 === board g4 .&&. board g1 === board g5
 
+-- | tests that pawns promote to queens when reaching the final row.
 prop_chess_pawn_promotion :: Property
 prop_chess_pawn_promotion = do
     let g1 = chess { board = parseBoard [
@@ -203,6 +209,7 @@ prop_chess_pawn_promotion = do
 
     board g2 === e2 .&&. board g3 === e3
 
+-- | tests that the knight can move correctly.
 prop_chess_knight_canOnlyMoveInLShape :: Property
 prop_chess_knight_canOnlyMoveInLShape = do
     let g1 = chess { board = parseBoard [
@@ -236,6 +243,7 @@ prop_chess_knight_canOnlyMoveInLShape = do
 
     e2 === board g2 .&&. e3 === board g3 .&&. board g1 === board g4 .&&. board g1 === board g5
 
+-- | tests that knight can jump over pieces.
 prop_chess_knight_canJumpOverPieces :: Property
 prop_chess_knight_canJumpOverPieces = do
     let g1 = chess { board = parseBoard [
@@ -259,7 +267,7 @@ prop_chess_knight_canJumpOverPieces = do
 
     e2 === board g2
 
-
+-- | tests that pawns cannot jump to the tile an ally is placed at.
 prop_chess_knight_canNotJumpToAllyTile :: Property
 prop_chess_knight_canNotJumpToAllyTile = do
     let g1 = chess { board = parseBoard [
@@ -276,6 +284,7 @@ prop_chess_knight_canNotJumpToAllyTile = do
         g5 = playTurn' wh (Pos 2 2) (Pos 4 3) g1
     board g1 === board g2 .&&. board g1 === board g3 .&&. board g1 === board g4 .&&. board g1 === board g5
 
+-- | tests that king can move exactly one step in any direction.
 prop_chess_king_moveOneStepInAnyDir :: Property
 prop_chess_king_moveOneStepInAnyDir = do
     let g1 = chess { board = parseBoard [
@@ -303,6 +312,7 @@ prop_chess_king_moveOneStepInAnyDir = do
             ]
     board g1 === board g2 .&&. board g1 === board g5 .&&. e3 === board g3 .&&. e4 === board g4
 
+-- | tests that taking a players king leads to the player with the remaining king.
 prop_chess_king_otherKingDeadLeadsToWin :: Property
 prop_chess_king_otherKingDeadLeadsToWin = do
     let g1 = chess { board = parseBoard [

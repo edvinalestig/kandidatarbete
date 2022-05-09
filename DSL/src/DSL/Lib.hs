@@ -161,11 +161,11 @@ doUntil r c f = IterateUntil (TurnRule f r) c
 replaceUntil :: Condition Turn -> Condition Turn -> Update Turn -> Rule
 replaceUntil c = doUntil (If c placePiece)
 
--- --------------
+-- | Passes the turn according to the order described in the gamestate.
 skipTurn :: Rule
 skipTurn = Rule $ Update _skipTurn
 
--- ---------------
+-- | A rule that places a specified piece at a tile specified by the turn inupt.
 convertToPiece :: String -> Rule
 convertToPiece s = TurnRule (Update $ _convertToPiece s) placePiece
 
@@ -182,15 +182,17 @@ trueCond = Condition (\_ _ -> True)
 falseCond :: Condition Turn
 falseCond = Condition (\_ _-> False)
 
--- ------------
+-- | A condition which is true if a given piece is at a given location.
 pieceIsAtPos :: Pos -> Condition Turn 
 pieceIsAtPos = Condition . _pieceIsAtPos
 
--- ------------
+-- | A condition which is true if a piece at the first position of a move turn 
+--   exists in a given row.
 pieceOriginBelongsToRow :: Int -> Condition Turn
 pieceOriginBelongsToRow = Condition . _pieceOriginBelongsToRow
 
--- ---------------
+-- | A condition which is true if a piece at the first position of a move turn 
+--   exists in a given row.
 pieceDestinationBelongsToRow :: Int -> Condition Turn
 pieceDestinationBelongsToRow = Condition . _pieceDestinationBelongsToRow
 
@@ -211,11 +213,11 @@ emptyTile = Condition _emptyTile
 allyTile :: Condition Turn
 allyTile = Condition $ _comparePlayerOnTile (==)
 
--- | A `Condition` for checking if the piece (on given tile) doesn't belong to the current player
+-- | A `Condition` for checking if the piece (on given tile) doesn't belong to the current player.
 enemyTile :: Condition Turn
 enemyTile = Condition $ _comparePlayerOnTile (/=)
 
--- | A `Condition` for checking if the piece is equal to a piece on the board ??????????????
+-- | A `Condition` for checking if a predescribed piece is equal to a given piece on the board.
 pieceEqualTo :: String -> Condition Turn
 pieceEqualTo = Condition . _pieceEqualTo
 
@@ -239,11 +241,11 @@ enemyDestination = Condition (_comparePlayerOnDestination (/=)) `AND` NOT emptyD
 destinationIsRelativeTo :: (Int, Int) -> Condition Turn
 destinationIsRelativeTo = Condition . _destinationIsRelativeTo
 
--- -------------
+-- | A `Condition` for checking if a given move follows a diagonal path.
 isDiagonalMove :: Condition Turn
 isDiagonalMove = Condition _isDiagonalMove
 
--- -------------
+-- | A `Condition` for checking if a given move follows a straight path.
 isStraightMove :: Condition Turn
 isStraightMove = Condition _isStraightMove
 
@@ -259,7 +261,7 @@ pieceNotOnBoard = NOT . pieceOnBoard
 noPlayerHasMoves :: Condition Turn
 noPlayerHasMoves = Condition _noPlayerHasMoves
 
--- -----------
+-- | A `Condition` for checking if a given player can place a piece anywhere on the board.
 playerCanPlace :: Condition Turn
 playerCanPlace = Condition _playerCanPlace
 

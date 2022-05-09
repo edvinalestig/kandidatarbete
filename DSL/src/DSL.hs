@@ -97,25 +97,28 @@ getValidInput g = do
         Move pos _ -> if empty' $ getTile (board g) pos then getValidInput g else return action
         Place _ -> return action 
 
--- -------------
+-- | Returns the piece at the first position of a move turn.
+-- Presumed is that the given turn is of type move and a piece exists at the given position.
 getInputPiece :: Game -> Action -> IO Piece
 getInputPiece g input = case input of
                     Move pos _ -> return $ getPiece (board g) pos
                     Place _ -> getValidPiece (head $ players g) (pieces g)
 
 
--- -----------
+-- | Gives the Action described in the given list of strings.
+--   Presumed is that the action is of type place.
 handlePlace :: [String] -> Action
 handlePlace input = Place $ Pos (x-1) (y-1)
     where [x,y] = getCoordsFromInput $ head input
 
--- --------
+-- | Gives the Action described in the given list of strings.
+--   Presumed is that the action is of type move.
 handleMove :: [String] -> Action
 handleMove input = Move (Pos (x1-1) (y1-1)) (Pos (x2-1) (y2-1))
     where [x1,y1] = getCoordsFromInput $ head input
           [x2,y2] = getCoordsFromInput $ head (tail input)
 
--- ----------
+-- | Gives the coordinates described in the given string.
 getCoordsFromInput :: String -> [Int]
 getCoordsFromInput s = catMaybes (map readMaybe $ splitOn "," s :: [Maybe Int])
 

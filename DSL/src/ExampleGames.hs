@@ -3,7 +3,6 @@ module ExampleGames where
 import DSL.Types
 import DSL.Lib
 
--- tic-tac-toe
 tictactoe :: Game
 tictactoe = game {
     board = rectBoard 3 3,
